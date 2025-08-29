@@ -1,208 +1,208 @@
-import React, { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
-import { Link } from "react-router-dom";
-import { Heart, ShoppingBag, Search, User, Menu, Grid, List } from "lucide-react";
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase'; // Your Firebase config
+import Navbar from '../components/navbar/navbar';
+import FilterBar from '../components/filters/FilterBar';
 
-const SalePage = () => {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("Relevance");
+// ------------------------
+// Inline ProductGrid Component
+// ------------------------
+function ProductGrid({ products, viewMode, isLoading, onResetFilters }) {
+  if (isLoading) {
+    return <p className="text-center text-gray-500">Loading products...</p>;
+  }
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "products"));
-        const productList = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setProducts(productList);
-        setFilteredProducts(productList);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      }
-    };
-    fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    let result = products.filter((p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  if (!products.length) {
+    return (
+      <div className="text-center text-gray-600">
+        <p>No products found.</p>
+        <button
+          onClick={onResetFilters}
+          className="mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+        >
+          Reset Filters
+        </button>
+      </div>
     );
-
-    if (sortBy === "Price: Low to High") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "Price: High to Low") {
-      result.sort((a, b) => b.price - a.price);
-    }
-
-    setFilteredProducts(result);
-  }, [searchQuery, sortBy, products]);
+  }
 
   return (
-    <div className="bg-white min-h-screen">
-      {/* ✅ Top Banner */}
-      <div className="bg-gray-100 text-center py-2 text-sm text-gray-600">
-        Get up to ₹750 OFF at checkout – Shop more, save more!
-      </div>
-
-      {/* ✅ Navbar */}
-      <nav className="flex justify-between items-center px-8 py-4 shadow-md bg-white sticky top-0 z-50">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <span className="text-red-600 text-3xl font-extrabold">RR</span>
-          <h1 className="text-xl font-bold">MyRaymond</h1>
-        </div>
-
-        {/* Menu */}
-        <ul className="hidden md:flex gap-8 font-semibold text-gray-700">
-          <li className="hover:text-red-600 cursor-pointer">Brands</li>
-          <li className="hover:text-red-600 cursor-pointer">
-            Fresh Arrivals <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">New</span>
-          </li>
-          <li className="hover:text-red-600 cursor-pointer">Categories</li>
-          <li className="text-red-600 cursor-pointer">SALE</li>
-        </ul>
-
-        {/* Search Bar */}
-        <div className="flex items-center bg-gray-100 px-3 py-2 rounded-full w-64">
-          <Search className="w-5 h-5 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search for Sweatshirts"
-            className="bg-transparent outline-none ml-2 w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+    <div
+      className={`grid gap-6 ${
+        viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3' : 'grid-cols-1'
+      }`}
+    >
+      {products.map(product => (
+        <div
+          key={product.id}
+          className="border rounded p-4 flex flex-col items-start bg-white shadow-sm"
+        >
+          <img
+            src={product.image || 'https://via.placeholder.com/150'}
+            alt={product.name}
+            className="w-full h-40 object-cover mb-2 rounded"
           />
+          <h2 className="font-semibold text-lg">{product.name}</h2>
+          <p className="text-gray-500 text-sm">{product.brand}</p>
+          <p className="text-purple-600 font-bold mt-1">₹{product.price}</p>
         </div>
-
-        {/* Icons */}
-        <div className="flex items-center gap-6 text-gray-700">
-          <User className="cursor-pointer" />
-          <Heart className="cursor-pointer" />
-          <ShoppingBag className="cursor-pointer" />
-          <Menu className="cursor-pointer md:hidden" />
-        </div>
-      </nav>
-
-      {/* ✅ SALE Header */}
-      <div className="max-w-7xl mx-auto px-6 mt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-3xl font-bold text-gray-800">SALE</h2>
-          <p className="text-gray-500">{filteredProducts.length} products</p>
-        </div>
-
-        {/* ✅ Filter & Sort Bar */}
-        <div className="flex flex-wrap items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm mb-8">
-          <div className="flex gap-4 flex-wrap">
-            <select className="border border-gray-300 rounded-lg px-3 py-2">
-              <option>Price</option>
-              <option>Under ₹1000</option>
-              <option>₹1000 - ₹3000</option>
-              <option>Above ₹3000</option>
-            </select>
-            <select className="border border-gray-300 rounded-lg px-3 py-2">
-              <option>Color</option>
-              <option>Red</option>
-              <option>Blue</option>
-              <option>Black</option>
-            </select>
-            <select className="border border-gray-300 rounded-lg px-3 py-2">
-              <option>Brand</option>
-              <option>PARK AVENUE</option>
-              <option>Raymond</option>
-            </select>
-            <select className="border border-gray-300 rounded-lg px-3 py-2">
-              <option>Size</option>
-              <option>S</option>
-              <option>M</option>
-              <option>L</option>
-            </select>
-          </div>
-
-          {/* Sort By */}
-          <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <select
-              className="border border-gray-300 rounded-lg px-3 py-2"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option>Relevance</option>
-              <option>Price: Low to High</option>
-              <option>Price: High to Low</option>
-            </select>
-            <div className="flex gap-2 text-gray-500">
-              <Grid className="cursor-pointer" />
-              <List className="cursor-pointer" />
-            </div>
-          </div>
-        </div>
-
-        {/* ✅ Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
-              <Link
-                key={product.id}
-                to={`/product/${product.id}`}
-                className="relative bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-xl transition duration-300 group"
-              >
-                {/* Wishlist Icon */}
-                <button className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:bg-red-50">
-                  <Heart className="w-5 h-5 text-gray-600" />
-                </button>
-
-                {/* Product Image */}
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="w-full h-64 object-cover rounded-t-xl"
-                />
-
-                {/* Product Info */}
-                <div className="p-4">
-                  <p className="text-sm text-gray-500">{product.brand}</p>
-                  <h3 className="text-lg font-semibold text-gray-800 group-hover:text-red-600 transition">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-500 text-sm mb-2 line-clamp-2">
-                    {product.description}
-                  </p>
-
-                  {/* Color Swatches */}
-                  <div className="flex gap-2 mb-3">
-                    {product.colors?.map((color, index) => (
-                      <span
-                        key={index}
-                        className="w-5 h-5 rounded-full border"
-                        style={{ backgroundColor: color }}
-                      ></span>
-                    ))}
-                  </div>
-
-                  {/* Price & Add to Cart */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold text-red-600">
-                      ₹{product.price}
-                    </span>
-                    <button className="bg-gray-100 p-2 rounded-full hover:bg-red-100">
-                      <ShoppingBag className="w-5 h-5 text-red-600" />
-                    </button>
-                  </div>
-                </div>
-              </Link>
-            ))
-          ) : (
-            <p className="text-gray-500 col-span-full text-center">
-              No products found.
-            </p>
-          )}
-        </div>
-      </div>
+      ))}
     </div>
   );
-};
+}
 
-export default SalePage;
+// ------------------------
+// Main ProductListing Page
+// ------------------------
+export default function ProductListing() {
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    price: 'all',
+    color: 'all',
+    brand: 'all',
+    size: 'all'
+  });
+  const [sortBy, setSortBy] = useState('relevance');
+  const [viewMode, setViewMode] = useState('grid');
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'products'));
+      const productData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(productData);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      price: 'all',
+      color: 'all',
+      brand: 'all',
+      size: 'all'
+    });
+    setSearchTerm('');
+    setSortBy('relevance');
+  };
+
+  const filteredAndSortedProducts = useMemo(() => {
+    let filtered = products.filter(product => {
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        if (
+          !product.name?.toLowerCase().includes(searchLower) &&
+          !product.brand?.toLowerCase().includes(searchLower) &&
+          !product.description?.toLowerCase().includes(searchLower)
+        ) return false;
+      }
+
+      if (filters.price !== 'all') {
+        switch (filters.price) {
+          case 'under-1000':
+            if (product.price >= 1000) return false;
+            break;
+          case '1000-3000':
+            if (product.price < 1000 || product.price > 3000) return false;
+            break;
+          case 'above-3000':
+            if (product.price <= 3000) return false;
+            break;
+        }
+      }
+
+      if (filters.color !== 'all') {
+        if (!product.colors?.some(color => color.toLowerCase() === filters.color.toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (filters.brand !== 'all') {
+        if (product.brand !== filters.brand) return false;
+      }
+
+      if (filters.size !== 'all') {
+        if (!product.sizes?.includes(filters.size)) return false;
+      }
+
+      return true;
+    });
+
+    switch (sortBy) {
+      case 'price-asc':
+        filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'price-desc':
+        filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  }, [products, searchTerm, filters, sortBy]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
+      {/* Navbar */}
+      <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* SALE Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10 text-center"
+        >
+          <h1 className="text-5xl md:text-6xl font-extrabold text-purple-800 mb-4">SALE</h1>
+          <motion.p
+            key={filteredAndSortedProducts.length}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-xl text-gray-700"
+          >
+            {filteredAndSortedProducts.length} products
+          </motion.p>
+        </motion.div>
+
+        {/* Filter Bar */}
+        <FilterBar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          productCount={filteredAndSortedProducts.length}
+        />
+
+        {/* Product Grid */}
+        <div className="mt-10">
+          <ProductGrid
+            products={filteredAndSortedProducts}
+            viewMode={viewMode}
+            isLoading={isLoading}
+            onResetFilters={handleResetFilters}
+          />
+        </div>
+      </main>
+    </div>
+  );
+}
