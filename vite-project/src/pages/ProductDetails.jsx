@@ -1,0 +1,162 @@
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { motion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
+
+const ProductDetails = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Fetch product details
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const docRef = doc(db, "products", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProduct(docSnap.data());
+        } else {
+          console.log("No such product!");
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
+
+  // Auto slideshow
+  useEffect(() => {
+    if (product?.images && product.images.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [product]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-xl font-semibold text-gray-600">
+        Loading product details...
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="flex justify-center items-center h-screen text-red-500 text-lg">
+        Product not found.
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 text-gray-900 relative overflow-hidden">
+      {/* Floating background blobs for aesthetic */}
+      <motion.div
+        className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
+        animate={{ x: [0, 40, -40, 0], y: [0, -40, 40, 0] }}
+        transition={{ repeat: Infinity, duration: 15 }}
+      />
+      <motion.div
+        className="absolute bottom-20 right-10 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
+        animate={{ x: [0, -50, 50, 0], y: [0, 50, -50, 0] }}
+        transition={{ repeat: Infinity, duration: 18 }}
+      />
+
+      <div className="relative z-10 px-6 md:px-20 py-16">
+        {/* Back Button - placed lower with extra spacing */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-3 mb-8 text-purple-600 hover:text-purple-800 transition text-lg font-semibold"
+        >
+          <ArrowLeft size={24} /> Back to Products
+        </button>
+
+        {/* Product Card */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 gap-12 backdrop-blur-xl bg-white/50 border border-white/40 rounded-3xl shadow-2xl p-8 md:p-12"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          {/* Image Slideshow */}
+          <div className="relative w-full h-[380px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl">
+            {product.images && product.images.length > 0 ? (
+              <img
+                src={product.images[currentImageIndex]}
+                alt={product.name}
+                className="w-full h-full object-cover transition-all duration-700"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
+                No Image Available
+              </div>
+            )}
+
+            {/* Dots Indicator */}
+            {product.images && product.images.length > 1 && (
+              <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex gap-3">
+                {product.images.map((_, index) => (
+                  <span
+                    key={index}
+                    className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                      index === currentImageIndex
+                        ? "bg-gradient-to-r from-purple-600 to-pink-500 scale-110"
+                        : "bg-white/50"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Info */}
+          <div className="flex flex-col justify-center space-y-6">
+            <h1 className="text-4xl font-extrabold text-purple-800">{product.name}</h1>
+            <p className="text-lg text-gray-700">{product.description}</p>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-2 gap-4 text-gray-600">
+              <p>
+                <span className="font-semibold">Brand:</span> {product.brand}
+              </p>
+              <p>
+                <span className="font-semibold">Category:</span> {product.category}
+              </p>
+              <p>
+                <span className="font-semibold">Size:</span> {product.size || "N/A"}
+              </p>
+              <p>
+                <span className="font-semibold">Stock:</span> {product.stock}
+              </p>
+            </div>
+
+            {/* Price */}
+            <p className="text-3xl font-bold text-pink-600">₹{product.price}</p>
+
+            {/* Buttons */}
+            <div className="flex gap-6 mt-6">
+              <button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white py-4 px-6 rounded-xl text-lg font-semibold hover:scale-105 transition">
+                Buy Now
+              </button>
+              <button className="flex-1 border border-purple-500 text-purple-700 py-4 px-6 rounded-xl text-lg font-semibold hover:bg-purple-100 transition">
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default ProductDetails;
