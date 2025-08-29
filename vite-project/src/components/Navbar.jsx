@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [activeSection, setActiveSection] = useState("hero");
@@ -42,16 +43,22 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-gray-900/50 backdrop-blur-md text-white px-6 py-4 flex justify-between items-center">
-      <div className="text-2xl font-bold">Nidhi Enterprises</div>
+    <nav className="fixed top-0 w-full z-50 bg-gray-200/5 backdrop-blur-md text-purple-600  px-6 py-4 flex justify-between items-center">
+    
 
-      <div className="space-x-6 text-lg flex">
+<div className="flex items-center gap-1">
+  <Link to="/" className="text-2xl text-purple-600  cursor-pointer font-bold ">
+    Nidhi Enterprices
+  </Link>
+</div>
+
+      <div className="space-x-6 text-lg cursor-pointer flex">
         {links.map((link) => (
           <button
             key={link.id}
             onClick={() => scrollToSection(link.id)}
             className={`transition px-2 py-1 ${
-              activeSection === link.id ? "text-purple-400 font-semibold" : "hover:text-purple-400"
+              activeSection === link.id ? "text-purple-400 font-semibold" : "hover:text-purple-400 cursor-pointer"
             }`}
           >
             {link.name}

@@ -2,8 +2,14 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from './ProductCard';
 import { Package, RefreshCw } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 export default function ProductGrid({ products, viewMode, isLoading, onResetFilters }) {
+  const navigate = useNavigate();
+
+  const handleCardClick = (id) => {
+    navigate(`/products/${id}`);
+  };
   if (isLoading) {
     return (
       <div className="min-h-96 flex items-center justify-center">
@@ -76,7 +82,13 @@ export default function ProductGrid({ products, viewMode, isLoading, onResetFilt
             layout
             exit={{ opacity: 0, scale: 0.9 }}
           >
-            <ProductCard product={product} viewMode={viewMode} />
+            <div
+              className="product-card"
+              onClick={() => handleCardClick(product.id)}
+              style={{ cursor: "pointer" }}
+            >
+              <ProductCard product={product} viewMode={viewMode} />
+            </div>
           </motion.div>
         ))}
       </AnimatePresence>

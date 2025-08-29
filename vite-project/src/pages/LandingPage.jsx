@@ -137,7 +137,7 @@ const LandingPage = () => {
   return (
     <div className="bg-gradient-to-br from-purple-50 via-white to-purple-100 text-gray-900 w-full h-full overflow-x-hidden scroll-smooth relative">
       
-      {/* ✅ Hero Section */}
+      {/* Hero Section */}
       <section id="hero" className="relative flex flex-col items-center justify-center h-screen text-center px-6">
         <motion.div
           className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
@@ -171,7 +171,7 @@ const LandingPage = () => {
         </motion.div>
       </section>
 
-      {/* ✅ Services Section */}
+      {/*  Services Section */}
 <section id="services" className="py-40 px-6 md:px-20">
   <motion.h2
     className="text-4xl md:text-5xl font-bold text-center mb-16 text-purple-800"
@@ -205,7 +205,7 @@ const LandingPage = () => {
         className={`flex flex-col md:flex-row items-center gap-12 backdrop-blur-xl bg-white/50 border border-white/40 rounded-3xl shadow-xl p-8 ${
           idx % 2 !== 0 ? "md:flex-row-reverse" : ""
         }`}
-        whileHover={{ scale: 1.03 }}
+        whileHover={{ scale: 1 }}
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -219,7 +219,7 @@ const LandingPage = () => {
         <div className="flex-1 text-center md:text-left space-y-4">
           <h3 className="text-3xl font-bold text-purple-800">{service.title}</h3>
           <p className="text-lg text-gray-700">{service.desc}</p>
-          <button className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full font-semibold hover:scale-105 transition">
+          <button className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full font-semibold hover:scale-105 cursor-pointer transition">
             Explore Now
           </button>
         </div>
@@ -229,7 +229,7 @@ const LandingPage = () => {
 </section>
 
 
-      {/* ✅ About Section */}
+      {/* About Section */}
 <section id="about" className="py-40 px-6 md:px-20">
   <motion.h2
     className="text-4xl md:text-5xl font-bold text-center mb-12 text-purple-800"
@@ -245,14 +245,14 @@ const LandingPage = () => {
       alt="Owner"
       className="w-72 h-72 rounded-2xl object-cover shadow-lg"
     />
-    <div className="space-y-4 text-lg text-gray-700">
+    <div className="space-y-4 text-lg text-neutral-700">
       <p>
-        <strong>Nidhi Enterprises in Revdi Bazar, Ahmedabad</strong>
+        <strong className="text-red-500/90">Nidhi Enterprises in Revdi Bazar, Ahmedabad</strong>
       </p>
       <p>
         We are a trusted name in the textile industry, specializing in premium
-        <strong> Suitings & Shirtings</strong> and offering an extensive range of
-        <strong> Raymond fabrics</strong>, quality materials, and fashionable designs.
+        <strong className="text-red-400/90" > Suitings & Shirtings</strong> and offering an extensive range of
+        <strong className="text-red-400/90"> Raymond fabrics</strong>, quality materials, and fashionable designs.
       </p>
       <p>
         With years of experience, we pride ourselves on delivering excellence and
@@ -260,11 +260,11 @@ const LandingPage = () => {
         personalized service.
       </p>
       <p>
-        <strong>Our Promise:</strong> Best quality fabrics at competitive prices,
+        <strong className="text-red-400/90">Our Promise:</strong> Best quality fabrics at competitive prices,
         exceptional craftsmanship, and a seamless shopping experience.
       </p>
       <p>
-        <strong>Location:</strong> Opp. Dhanlaxmi Market, Ahmedabad.
+        <strong className="text-red-400/90">Location:</strong> Opp. Dhanlaxmi Market, Ahmedabad.
       </p>
       <p>
         Visit us today to explore our latest collection and experience the blend of

@@ -56,7 +56,7 @@ export default function FilterBar({
             <select
               value={filters.price}
               onChange={(e) => onFilterChange('price', e.target.value)}
-              className="w-40 bg-white border border-gray-200 rounded px-2 py-1 hover:border-red-300"
+              className="w-40 bg-white border border-gray-200 rounded px-2 py-1 hover:border-purple-300"
             >
               {priceRanges.map(range => (
                 <option key={range.value} value={range.value}>{range.label}</option>
@@ -67,7 +67,7 @@ export default function FilterBar({
             <select
               value={filters.color}
               onChange={(e) => onFilterChange('color', e.target.value)}
-              className="w-32 bg-white border border-gray-200 rounded px-2 py-1 hover:border-red-300"
+              className="w-32 bg-white border border-gray-200 rounded px-2 py-1 hover:border-purple-300"
             >
               {colors.map(color => (
                 <option key={color.value} value={color.value}>{color.label}</option>
@@ -78,7 +78,7 @@ export default function FilterBar({
             <select
               value={filters.brand}
               onChange={(e) => onFilterChange('brand', e.target.value)}
-              className="w-36 bg-white border border-gray-200 rounded px-2 py-1 hover:border-red-300"
+              className="w-36 bg-white border border-gray-200 rounded px-2 py-1 hover:border-purple-300 "
             >
               {brands.map(brand => (
                 <option key={brand.value} value={brand.value}>{brand.label}</option>
@@ -89,7 +89,7 @@ export default function FilterBar({
             <select
               value={filters.size}
               onChange={(e) => onFilterChange('size', e.target.value)}
-              className="w-28 bg-white border border-gray-200 rounded px-2 py-1 hover:border-red-300"
+              className="w-28 bg-white border border-gray-200 rounded px-2 py-1 hover:border-purple-300"
             >
               {sizes.map(size => (
                 <option key={size.value} value={size.value}>{size.label}</option>
@@ -102,7 +102,7 @@ export default function FilterBar({
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
-              className="w-48 bg-white border border-gray-200 rounded px-2 py-1 hover:border-red-300"
+              className="w-48 bg-white border border-gray-200 rounded px-2 py-1 hover:border-purple-300"
             >
               {sortOptions.map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
