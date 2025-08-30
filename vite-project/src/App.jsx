@@ -6,13 +6,20 @@ import Login from "./pages/Login";
 import ProductListing from "./pages/ProductListing";
 import AdminPanel from "./pages/AdminPanel";
 import ProductDetails from "./pages/ProductDetails";
+import Account from "./pages/Account";
+import Cart from "./pages/Cart";
 
 function App() {
   const location = useLocation();
 
+  // ✅ Hide Navbar on specific routes
   const hideNavbar =
-    location.pathname === "/signup" || location.pathname === "/products";
-    location.pathname === "/login";  location.pathname === "/admin";
+    location.pathname === "/signup" ||
+    location.pathname === "/login" ||
+    location.pathname === "/admin" ||
+    location.pathname === "/account" ||
+    location.pathname === "/products" ||
+    location.pathname === "/cart" || // ✅ Added Cart
     location.pathname.startsWith("/products/");
 
   return (
@@ -23,8 +30,10 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/products" element={<ProductListing />} />
-        <Route path="/products/:id" element={<ProductDetails />} /> {/* ✅ FIXED */}
+        <Route path="/products/:id" element={<ProductDetails />} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/account" element={<Account />} />
+        <Route path="/cart" element={<Cart />} /> {/* ✅ Fixed */}
       </Routes>
     </>
   );

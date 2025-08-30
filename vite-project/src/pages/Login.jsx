@@ -103,57 +103,53 @@ function Login() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center"
-      style={{
-        backgroundImage:
-          "url('https://rr.myraymond.com/cdn/shop/files/Untitled-2.jpg?v=1738845089&width=1500')",
-      }}
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-white to-purple-200"
     >
-      <div className="w-full max-w-md p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl space-y-6 text-white">
-        <h2 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-red-300 to-red-500">
+      <div className="w-full max-w-md p-8 bg-white/10 backdrop-blur-lg border border-purple-400 shadow-2xl rounded-2xl space-y-6 text-purple-900">
+        <h2 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-700">
           Welcome Back
         </h2>
 
         {/* Email Login */}
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <div className="relative">
-            <Mail className="absolute left-3 top-3 text-red-300" />
+            <Mail className="absolute left-3 top-3 text-purple-400" />
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full pl-10 px-4 py-3 rounded-lg border border-white/30 bg-white/10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="w-full pl-10 px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 text-red-300" />
+            <Lock className="absolute left-3 top-3 text-purple-400" />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full pl-10 px-4 py-3 rounded-lg border border-white/30 bg-white/10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="w-full pl-10 px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-red-300 hover:bg-red-400 text-black font-semibold rounded-lg transition-transform hover:scale-105 disabled:opacity-50"
+            className="w-full py-3 bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white font-semibold rounded-lg transition-transform hover:scale-105 disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login with Email"}
           </button>
         </form>
 
-        <div className="text-center text-white/70">or</div>
+        <div className="text-center text-purple-600">or</div>
 
         {/* Google Login */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-3 border border-white/30 rounded-lg font-medium text-white bg-white/10 hover:bg-white/20 transition-all"
+          className="w-full flex items-center justify-center gap-3 py-3 border border-purple-300 rounded-lg font-medium text-purple-700 bg-white/10 hover:bg-purple-50 transition-all"
         >
           <img
             src="https://www.svgrepo.com/show/355037/google.svg"
@@ -166,13 +162,13 @@ function Login() {
         {/* Phone Login */}
         <div className="space-y-4">
           <div className="relative">
-            <Phone className="absolute left-3 top-3 text-red-300" />
+            <Phone className="absolute left-3 top-3 text-purple-400" />
             <input
               type="tel"
               placeholder="+91"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full pl-10 px-4 py-3 rounded-lg border border-white/30 bg-white/10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="w-full pl-10 px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
           </div>
 
@@ -182,7 +178,7 @@ function Login() {
               placeholder="Enter OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="w-full px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
           )}
 
@@ -190,7 +186,7 @@ function Login() {
             <button
               onClick={handleSendOtp}
               disabled={loading}
-              className="w-full py-3 border border-red-300 text-red-300 rounded-lg font-semibold hover:bg-white/10 transition-all"
+              className="w-full py-3 border border-purple-400 text-purple-600 rounded-lg font-semibold hover:bg-purple-100 transition-all"
             >
               Send OTP
             </button>
@@ -198,7 +194,7 @@ function Login() {
             <button
               onClick={handleVerifyOtp}
               disabled={loading}
-              className="w-full py-3 bg-red-300 text-black rounded-lg font-semibold hover:bg-red-400 transition-all"
+              className="w-full py-3 bg-gradient-to-r from-purple-400 to-purple-600 text-white rounded-lg font-semibold hover:from-purple-500 hover:to-purple-700 transition-all"
             >
               Verify OTP
             </button>
@@ -208,15 +204,15 @@ function Login() {
         <div id="recaptcha-container"></div>
 
         {successMsg && (
-          <p className="mt-4 text-green-400 font-semibold text-center">{successMsg}</p>
+          <p className="mt-4 text-green-600 font-semibold text-center">{successMsg}</p>
         )}
         {errorMsg && (
-          <p className="mt-4 text-red-400 font-semibold text-center">{errorMsg}</p>
+          <p className="mt-4 text-red-600 font-semibold text-center">{errorMsg}</p>
         )}
 
-        <p className="text-center text-sm text-white/70 mt-4">
+        <p className="text-center text-sm text-purple-500 mt-4">
           Don't have an account?{" "}
-          <a href="/signup" className="text-red-300 underline hover:text-red-400">
+          <a href="/signup" className="text-purple-700 underline hover:text-purple-900">
             Sign Up
           </a>
         </p>

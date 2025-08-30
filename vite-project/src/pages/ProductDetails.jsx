@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
-// Removed framer-motion
+import { db, auth } from "../firebase"; // ✅ auth imported
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ArrowLeft } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -11,6 +11,15 @@ const ProductDetails = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [user, setUser] = useState(null);
+
+  // ✅ Track logged-in user
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Fetch product details
   useEffect(() => {
@@ -42,12 +51,49 @@ const ProductDetails = () => {
     }
   }, [product]);
 
+  // ✅ Handle Add to Cart
+  const handleAddToCart = async () => {
+    if (!user) {
+      alert("Please login to add items to your cart.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const cartItemRef = doc(db, "users", user.uid, "cart", id);
+      await setDoc(cartItemRef, {
+        ...product,
+        quantity: 1,
+        addedAt: new Date()
+      });
+      alert("Added to cart successfully!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <svg className="animate-spin h-12 w-12 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        <svg
+          className="animate-spin h-12 w-12 text-purple-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+          ></path>
         </svg>
       </div>
     );
@@ -71,6 +117,7 @@ const ProductDetails = () => {
           <ArrowLeft size={24} /> Back to Products
         </button>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 backdrop-blur-xl bg-white/50 border border-white/40 rounded-3xl shadow-2xl p-8 md:p-12">
+          {/* Product Image Section */}
           <div className="relative w-full h-[380px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl">
             {product.images && product.images.length > 0 ? (
               <img
@@ -98,6 +145,8 @@ const ProductDetails = () => {
               </div>
             )}
           </div>
+
+          {/* Product Details Section */}
           <div className="flex flex-col justify-center space-y-6">
             <h1 className="text-4xl font-extrabold text-purple-800">{product.name}</h1>
             <p className="text-lg text-gray-700">{product.description}</p>
@@ -114,13 +163,48 @@ const ProductDetails = () => {
               <p>
                 <span className="font-semibold">Stock:</span> {product.stock}
               </p>
+              {product.material && (
+                <p>
+                  <span className="font-semibold">Material:</span> {product.material}
+                </p>
+              )}
+              {product.color && (
+                <p>
+                  <span className="font-semibold">Color:</span> {product.color}
+                </p>
+              )}
+              {product.fit && (
+                <p>
+                  <span className="font-semibold">Fit:</span> {product.fit}
+                </p>
+              )}
+              {product.careInstructions && (
+                <p>
+                  <span className="font-semibold">Care:</span> {product.careInstructions}
+                </p>
+              )}
+              {product.occasion && (
+                <p>
+                  <span className="font-semibold">Occasion:</span> {product.occasion}
+                </p>
+              )}
+              {product.gender && (
+                <p>
+                  <span className="font-semibold">Gender:</span> {product.gender}
+                </p>
+              )}
             </div>
-            <p className="text-3xl font-bold text-pink-600">₹{product.price}</p>
+            <p className="text-3xl font-bold text-purple-600">
+              ₹{product.price}/meter
+            </p>
             <div className="flex gap-6 mt-6">
               <button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white py-4 px-6 rounded-xl text-lg font-semibold">
                 Buy Now
               </button>
-              <button className="flex-1 border border-purple-500 text-purple-700 py-4 px-6 rounded-xl text-lg font-semibold hover:bg-purple-100">
+              <button
+                onClick={handleAddToCart}
+                className="flex-1 border border-purple-500 text-purple-700 py-4 px-6 rounded-xl text-lg font-semibold hover:bg-purple-100"
+              >
                 Add to Cart
               </button>
             </div>

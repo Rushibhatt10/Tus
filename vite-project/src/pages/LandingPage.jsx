@@ -150,7 +150,7 @@ const LandingPage = () => {
           transition={{ repeat: Infinity, duration: 18 }}
         />
 
-        <CurvedLoop marqueeText="Premium Suits - Custom Tailoring - Wardrobe Solutions - Raymond Fabrics -" />
+        <CurvedLoop marqueeText="Premium Suits - Custom Tailoring - Wardrobe Solutions - Fine Fabrics -" />
 
         <motion.div
           className="backdrop-blur-xl bg-white/30 border border-white/40 rounded-3xl shadow-2xl p-10 mt-12 max-w-3xl mx-auto"

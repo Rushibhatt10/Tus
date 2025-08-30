@@ -36,14 +36,18 @@ const useProducts = () => {
 // ------------------------
 // ProductCard Component
 // ------------------------
-const ProductCard = ({ product, onClick }) => {
+const ProductCard = ({ product }) => {
+  const navigate = useNavigate();
   const imageUrl = product.images && product.images.length > 0
     ? product.images[0]
     : 'https://via.placeholder.com/150';
+
   return (
     <div
       className="bg-white border border-gray-400 rounded-2xl shadow-lg flex flex-col items-center justify-between cursor-pointer transition-transform hover:scale-105 p-4 w-full max-w-xs h-[370px] mx-auto"
-      onClick={onClick}
+      onClick={() => navigate(`/products/${product.id}`)}
+      role="button"
+      tabIndex={0}
     >
       <div className="w-full h-44 flex items-center justify-center overflow-hidden rounded-xl mb-3 bg-gray-50">
         <img
@@ -53,13 +57,18 @@ const ProductCard = ({ product, onClick }) => {
         />
       </div>
       <div className="w-full flex-1 flex flex-col justify-between">
-        <h2 className="font-semibold text-lg text-gray-900 truncate mb-1">{product.name}</h2>
+        <h2 className="font-semibold text-lg text-gray-900 truncate mb-1">
+          {product.name}
+        </h2>
         <p className="text-gray-500 text-sm truncate mb-1">{product.brand}</p>
-        <p className="text-purple-600 font-bold text-xl mt-2">₹{product.price}</p>
+        <p className="text-purple-600 font-bold text-xl mt-2">
+          ₹{product.price}
+        </p>
       </div>
     </div>
   );
 };
+
 
 // ------------------------
 // ProductGrid Component
