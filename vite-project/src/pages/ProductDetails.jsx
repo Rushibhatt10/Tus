@@ -51,6 +51,10 @@ const ProductDetails = () => {
     }
   }, [product]);
 
+  const handleBuyNow = () => {
+  navigate("/checkout", { state: { product } });
+};
+
   // ✅ Handle Add to Cart
   const handleAddToCart = async () => {
     if (!user) {
@@ -147,68 +151,50 @@ const ProductDetails = () => {
           </div>
 
           {/* Product Details Section */}
-          <div className="flex flex-col justify-center space-y-6">
-            <h1 className="text-4xl font-extrabold text-purple-800">{product.name}</h1>
-            <p className="text-lg text-gray-700">{product.description}</p>
-            <div className="grid grid-cols-2 gap-4 text-gray-600">
-              <p>
-                <span className="font-semibold">Brand:</span> {product.brand}
-              </p>
-              <p>
-                <span className="font-semibold">Category:</span> {product.category}
-              </p>
-              <p>
-                <span className="font-semibold">Size:</span> {product.size || "N/A"}
-              </p>
-              <p>
-                <span className="font-semibold">Stock:</span> {product.stock}
-              </p>
-              {product.material && (
-                <p>
-                  <span className="font-semibold">Material:</span> {product.material}
-                </p>
-              )}
-              {product.color && (
-                <p>
-                  <span className="font-semibold">Color:</span> {product.color}
-                </p>
-              )}
-              {product.fit && (
-                <p>
-                  <span className="font-semibold">Fit:</span> {product.fit}
-                </p>
-              )}
-              {product.careInstructions && (
-                <p>
-                  <span className="font-semibold">Care:</span> {product.careInstructions}
-                </p>
-              )}
-              {product.occasion && (
-                <p>
-                  <span className="font-semibold">Occasion:</span> {product.occasion}
-                </p>
-              )}
-              {product.gender && (
-                <p>
-                  <span className="font-semibold">Gender:</span> {product.gender}
-                </p>
-              )}
-            </div>
-            <p className="text-3xl font-bold text-purple-600">
-              ₹{product.price}/meter
-            </p>
-            <div className="flex gap-6 mt-6">
-              <button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white py-4 px-6 rounded-xl text-lg font-semibold">
-                Buy Now
-              </button>
-              <button
-                onClick={handleAddToCart}
-                className="flex-1 border border-purple-500 text-purple-700 py-4 px-6 rounded-xl text-lg font-semibold hover:bg-purple-100"
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
+<div className="flex flex-col justify-center space-y-6">
+  <h1 className="text-4xl font-extrabold text-purple-800">{product.name}</h1>
+  <p className="text-lg text-gray-700">{product.description}</p>
+  
+  {/* All product fields */}
+  <div className="grid grid-cols-2 gap-4 text-gray-600">
+    <p><span className="font-semibold">Price:</span> ₹{product.price}/meter</p>
+    <p><span className="font-semibold">Brand:</span> {product.brand || "N/A"}</p>
+    <p><span className="font-semibold">Size:</span> {product.size || "N/A"}</p>
+    <p><span className="font-semibold">Color:</span> {product.color || "N/A"}</p>
+    <p><span className="font-semibold">Category:</span> {product.category || "N/A"}</p>
+    <p><span className="font-semibold">Fit:</span> {product.fit || "N/A"}</p>
+    <p><span className="font-semibold">Pattern:</span> {product.pattern || "N/A"}</p>
+    <p><span className="font-semibold">Neck:</span> {product.neck || "N/A"}</p>
+    <p><span className="font-semibold">Sleeve:</span> {product.sleeve || "N/A"}</p>
+    <p><span className="font-semibold">Discount:</span> {product.discount ? `${product.discount}%` : "0%"}</p>
+    <p><span className="font-semibold">Material:</span> {product.material || "N/A"}</p>
+    <p><span className="font-semibold">Care Instructions:</span> {product.careInstructions || "N/A"}</p>
+    <p><span className="font-semibold">Occasion:</span> {product.occasion || "N/A"}</p>
+    <p><span className="font-semibold">Gender:</span> {product.gender || "N/A"}</p>
+    <p><span className="font-semibold">Stock Quantity:</span> {product.stock || 0}</p>
+    <p><span className="font-semibold">Availability:</span> {product.availability || "N/A"}</p>
+  </div>
+
+  <p className="text-3xl font-bold text-purple-600">
+    ₹{product.price}/meter
+  </p>
+
+  <div className="flex gap-6 mt-6">
+ <button
+  onClick={handleBuyNow}
+  className="bg-pink-500 hover:bg-pink-600 text-white py-3 px-6 rounded-lg text-lg"
+>
+  Buy Now
+</button>
+
+    <button
+      onClick={handleAddToCart}
+      className="flex-1 border border-purple-500 text-purple-700 py-4 px-6 rounded-xl text-lg font-semibold hover:bg-purple-100"
+    >
+      Add to Cart
+    </button>
+  </div>
+</div>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ import AdminPanel from "./pages/AdminPanel";
 import ProductDetails from "./pages/ProductDetails";
 import Account from "./pages/Account";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Cheakout";
 
 function App() {
   const location = useLocation();
@@ -19,7 +20,8 @@ function App() {
     location.pathname === "/admin" ||
     location.pathname === "/account" ||
     location.pathname === "/products" ||
-    location.pathname === "/cart" || // ✅ Added Cart
+    location.pathname === "/cart" ||
+    location.pathname === "/checkout" || 
     location.pathname.startsWith("/products/");
 
   return (
@@ -33,7 +35,8 @@ function App() {
         <Route path="/products/:id" element={<ProductDetails />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/account" element={<Account />} />
-        <Route path="/cart" element={<Cart />} /> {/* ✅ Fixed */}
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
       </Routes>
     </>
   );

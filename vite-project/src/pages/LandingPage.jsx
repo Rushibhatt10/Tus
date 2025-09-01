@@ -247,12 +247,12 @@ const LandingPage = () => {
     />
     <div className="space-y-4 text-lg text-neutral-700">
       <p>
-        <strong className="text-red-500/90">Nidhi Enterprises in Revdi Bazar, Ahmedabad</strong>
+        <strong className="text-purple-500/90">Nidhi Enterprises in Revdi Bazar, Ahmedabad</strong>
       </p>
       <p>
         We are a trusted name in the textile industry, specializing in premium
-        <strong className="text-red-400/90" > Suitings & Shirtings</strong> and offering an extensive range of
-        <strong className="text-red-400/90"> Raymond fabrics</strong>, quality materials, and fashionable designs.
+        <strong className="text-purple-400/90" > Suitings & Shirtings</strong> and offering an extensive range of
+        <strong className="text-purple-400/90"> Fabrics</strong>, quality materials, and fashionable designs.
       </p>
       <p>
         With years of experience, we pride ourselves on delivering excellence and
@@ -260,11 +260,11 @@ const LandingPage = () => {
         personalized service.
       </p>
       <p>
-        <strong className="text-red-400/90">Our Promise:</strong> Best quality fabrics at competitive prices,
+        <strong className="text-purple-400/90">Our Promise:</strong> Best quality fabrics at competitive prices,
         exceptional craftsmanship, and a seamless shopping experience.
       </p>
       <p>
-        <strong className="text-red-400/90">Location:</strong> Opp. Dhanlaxmi Market, Ahmedabad.
+        <strong className="text-purple-400/90">Location:</strong> Opp. Dhanlaxmi Market, Ahmedabad.
       </p>
       <p>
         Visit us today to explore our latest collection and experience the blend of

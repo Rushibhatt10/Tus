@@ -18,7 +18,8 @@ export default function Navbar({ searchTerm = "", onSearchChange = () => {} }) {
       {/* Top promotional banner */}
       <div className="bg-gray-50 border-b border-gray-100 py-2 text-center">
         <p className="text-sm text-gray-600">
-          Get up to ₹750 OFF at checkout – Shop more, save more!
+          Get up to ₹750 OFF at checkout – Shop more, save more!<>
+          </> We deliver free all over India.
         </p>
       </div>
 
