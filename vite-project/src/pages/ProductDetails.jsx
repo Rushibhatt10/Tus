@@ -46,7 +46,7 @@ const ProductDetails = () => {
     if (product?.images && product.images.length > 1) {
       const interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
-      }, 4000);
+      }, 3000);
       return () => clearInterval(interval);
     }
   }, [product]);

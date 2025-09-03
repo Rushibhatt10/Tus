@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CreditCard, MapPin, ShoppingBag } from "lucide-react";
-import { auth } from "../firebase"; // ✅ Import Firebase Auth
+import { CreditCard, MapPin, ShoppingBag, Lock } from "lucide-react";
+import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function Checkout() {
@@ -11,6 +11,15 @@ export default function Checkout() {
   const product = location.state?.product || {};
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+
+  const shippingCharge = 50;
+  const taxRate = 0.05; // 5% GST
+  const discount = product.price > 1000 ? 100 : 0; // Example discount
+
+  const subtotal = parseInt(product.price) * quantity;
+  const tax = subtotal * taxRate;
+  const total = subtotal + tax + shippingCharge - discount;
 
   // ✅ Check user authentication
   useEffect(() => {
@@ -27,7 +36,7 @@ export default function Checkout() {
   }, [navigate]);
 
   const handlePlaceOrder = () => {
-    alert("Order placed successfully!");
+    alert("✅ Order placed successfully!");
     navigate("/");
   };
 
@@ -76,77 +85,61 @@ export default function Checkout() {
             <h3 className="text-2xl font-semibold flex items-center gap-3 text-purple-700 mb-6">
               <MapPin size={22} /> Shipping Details
             </h3>
-           <form className="space-y-5">
-  {/* Full Name */}
-  <input
-    type="text"
-    placeholder="Full Name"
-    className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-  />
-
-  {/* Mobile Number */}
-  <input
-    type="tel"
-    placeholder="Mobile Number"
-    className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-  />
-
-  {/* Pincode */}
-  <input
-    type="text"
-    placeholder="Pincode"
-    className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-  />
-
-  {/* Flat/House No., Building */}
-  <input
-    type="text"
-    placeholder="Flat/House No., Building, Company, Apartment"
-    className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-  />
-
-  {/* Area, Street */}
-  <input
-    type="text"
-    placeholder="Area, Street, Sector, Village"
-    className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-  />
-
-  {/* Landmark */}
-  <input
-    type="text"
-    placeholder="Landmark (Optional)"
-    className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-  />
-
-  {/* City & State */}
-  <div className="grid grid-cols-2 gap-5">
-    <input
-      type="text"
-      placeholder="Town/City"
-      className="rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-    />
-    <input
-      type="text"
-      placeholder="State"
-      className="rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-    />
-  </div>
-
-  {/* Address Type */}
-  <div className="flex gap-4 items-center">
-    <label className="flex items-center gap-2 text-lg text-gray-700">
-      <input type="radio" name="addressType" value="Home" className="w-5 h-5" /> Home
-    </label>
-    <label className="flex items-center gap-2 text-lg text-gray-700">
-      <input type="radio" name="addressType" value="Work" className="w-5 h-5" /> Work
-    </label>
-    <label className="flex items-center gap-2 text-lg text-gray-700">
-      <input type="radio" name="addressType" value="Other" className="w-5 h-5" /> Other
-    </label>
-  </div>
-</form>
-
+            <form className="space-y-5">
+              <input
+                type="text"
+                placeholder="Full Name"
+                className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+              <input
+                type="tel"
+                placeholder="Mobile Number"
+                className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Pincode"
+                className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Flat/House No., Building, Company, Apartment"
+                className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Area, Street, Sector, Village"
+                className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Landmark (Optional)"
+                className="w-full rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+              <div className="grid grid-cols-2 gap-5">
+                <input
+                  type="text"
+                  placeholder="Town/City"
+                  className="rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="State"
+                  className="rounded-xl border border-purple-300 bg-white/60 p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                />
+              </div>
+              <div className="flex gap-4 items-center">
+                <label className="flex items-center gap-2 text-lg text-gray-700">
+                  <input type="radio" name="addressType" value="Home" className="w-5 h-5" /> Home
+                </label>
+                <label className="flex items-center gap-2 text-lg text-gray-700">
+                  <input type="radio" name="addressType" value="Work" className="w-5 h-5" /> Work
+                </label>
+                <label className="flex items-center gap-2 text-lg text-gray-700">
+                  <input type="radio" name="addressType" value="Other" className="w-5 h-5" /> Other
+                </label>
+              </div>
+            </form>
 
             {/* Payment */}
             <h3 className="text-2xl font-semibold flex items-center gap-3 text-purple-700 mt-10 mb-4">
@@ -171,25 +164,53 @@ export default function Checkout() {
                 className="w-24 h-24 rounded-xl object-cover border border-purple-200"
               />
               <div>
-                <p className="text-lg font-medium text-purple-800">
-                  {product.name}
-                </p>
+                <p className="text-lg font-medium text-purple-800">{product.name}</p>
                 <p className="text-gray-600 text-md">₹{product.price}/meter</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <label className="text-gray-700 font-medium">Qty:</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-16 rounded-lg border border-purple-300 text-center text-lg"
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Delivery Info */}
+            <p className="text-green-600 font-semibold mb-4">
+              Estimated Delivery: 3-5 Business Days
+            </p>
 
             <div className="border-t border-purple-200 my-4"></div>
             <div className="flex justify-between text-lg text-gray-700 mb-2">
               <span>Subtotal</span>
-              <span>₹{product.price}</span>
+              <span>₹{subtotal}</span>
             </div>
             <div className="flex justify-between text-lg text-gray-700 mb-2">
               <span>Shipping</span>
-              <span>₹50</span>
+              <span>₹{shippingCharge}</span>
             </div>
+            <div className="flex justify-between text-lg text-gray-700 mb-2">
+              <span>Tax (5%)</span>
+              <span>₹{tax.toFixed(2)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-lg text-green-600 mb-2">
+                <span>Discount</span>
+                <span>-₹{discount}</span>
+              </div>
+            )}
             <div className="flex justify-between text-2xl font-bold text-purple-800">
               <span>Total</span>
-              <span>₹{parseInt(product.price) + 50}</span>
+              <span>₹{total.toFixed(2)}</span>
+            </div>
+
+            {/* Secure Payment Info */}
+            <div className="flex items-center gap-2 text-gray-600 text-sm mt-4">
+              <Lock size={16} /> Secure Payment Gateway
             </div>
 
             <motion.button
