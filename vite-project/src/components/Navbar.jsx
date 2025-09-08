@@ -12,7 +12,7 @@ const Navbar = () => {
     }
   };
 
-  // Detect active section based on scroll
+  // Detect active section
   useEffect(() => {
     const sections = ["hero", "about", "services", "contact"];
 
@@ -43,22 +43,27 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-gray-200/5 backdrop-blur-md text-purple-600  px-6 py-4 flex justify-between items-center">
-    
+    <nav className="fixed top-0 w-full z-50 bg-transparent text-purple-600 px-6 py-4 flex justify-between items-center">
+      {/* Logo */}
+      <div className="flex items-center gap-1">
+        <Link
+          to="/"
+          className="text-2xl text-purple-600 font-bold cursor-pointer"
+        >
+          Nidhi Enterprises
+        </Link>
+      </div>
 
-<div className="flex items-center gap-1">
-  <Link to="/" className="text-2xl text-purple-600  cursor-pointer font-bold ">
-    Nidhi Enterprices
-  </Link>
-</div>
-
-      <div className="space-x-6 text-lg cursor-pointer flex">
+      {/* Navigation Links */}
+      <div className="space-x-6 text-lg flex">
         {links.map((link) => (
           <button
             key={link.id}
             onClick={() => scrollToSection(link.id)}
             className={`transition px-2 py-1 ${
-              activeSection === link.id ? "text-purple-400 font-semibold" : "hover:text-purple-400 cursor-pointer"
+              activeSection === link.id
+                ? "text-purple-400 font-semibold"
+                : "hover:text-purple-400"
             }`}
           >
             {link.name}

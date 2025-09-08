@@ -6,7 +6,7 @@ import axios from "axios";
 const AdminPanel = () => {
   const [enteredPassword, setEnteredPassword] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const correctPassword = "admin1"; // Change this securely later
+  const correctPassword = "Rushi"; // Change this securely later
 
   const [activeTab, setActiveTab] = useState("products"); // "products" or "users"
 
