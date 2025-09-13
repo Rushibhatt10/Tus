@@ -10,7 +10,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Phone, ShieldCheck } from "lucide-react";
 
-function Signup() {
+function Signup({ theme }) { // <-- theme prop ('light' | 'dark')
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -77,7 +77,11 @@ function Signup() {
   // Setup Recaptcha
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "invisible" }, auth);
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        "recaptcha-container",
+        { size: "invisible" },
+        auth
+      );
     }
   };
 
@@ -123,9 +127,19 @@ function Signup() {
     }
   };
 
+  // Dynamic theme classes
+  const isDark = theme === "dark";
+  const bgClass = isDark ? "bg-gray-900" : "bg-gradient-to-br from-purple-100 via-white to-purple-200";
+  const cardClass = isDark
+    ? "bg-gray-800/60 text-white border-gray-700"
+    : "bg-white/10 text-purple-900 border-purple-400";
+  const inputClass = isDark
+    ? "bg-gray-700 text-white placeholder-gray-400 border-gray-600 focus:ring-purple-400"
+    : "bg-white/10 text-purple-900 placeholder-purple-400 border-purple-300 focus:ring-purple-400";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-white to-purple-200">
-      <div className="w-full max-w-md p-8 bg-white/10 backdrop-blur-lg border border-purple-400 shadow-2xl rounded-2xl space-y-6 text-purple-900">
+    <div className={`min-h-screen flex items-center justify-center ${bgClass}`}>
+      <div className={`w-full max-w-md p-8 ${cardClass} backdrop-blur-lg shadow-2xl rounded-2xl space-y-6`}>
         <h2 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-700">
           Create Your Account
         </h2>
@@ -133,36 +147,36 @@ function Signup() {
         {/* Email Signup */}
         <form onSubmit={handleEmailSignup} className="space-y-4">
           <div className="relative">
-            <ShieldCheck className="absolute left-3 top-3 text-purple-400" />
+            <ShieldCheck className={`absolute left-3 top-3 ${isDark ? "text-purple-300" : "text-purple-400"}`} />
             <input
               type="text"
               placeholder="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full pl-10 px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
             />
           </div>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 text-purple-400" />
+            <Mail className={`absolute left-3 top-3 ${isDark ? "text-purple-300" : "text-purple-400"}`} />
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full pl-10 px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
             />
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 text-purple-400" />
+            <Lock className={`absolute left-3 top-3 ${isDark ? "text-purple-300" : "text-purple-400"}`} />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full pl-10 px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
             />
           </div>
           <button
@@ -174,13 +188,13 @@ function Signup() {
           </button>
         </form>
 
-        <div className="text-center text-purple-600">or</div>
+        <div className={`text-center ${isDark ? "text-gray-300" : "text-purple-600"}`}>or</div>
 
         {/* Google Signup */}
         <button
           onClick={handleGoogleSignup}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-3 border border-purple-300 rounded-lg font-medium text-purple-700 bg-white/10 hover:bg-purple-50 transition-all"
+          className={`w-full flex items-center justify-center gap-3 py-3 border rounded-lg font-medium ${isDark ? "text-white border-gray-600 bg-gray-700 hover:bg-gray-600" : "text-purple-700 border-purple-300 bg-white/10 hover:bg-purple-50"} transition-all`}
         >
           <img
             src="https://www.svgrepo.com/show/355037/google.svg"
@@ -193,13 +207,13 @@ function Signup() {
         {/* Phone Signup */}
         <div className="space-y-4">
           <div className="relative">
-            <Phone className="absolute left-3 top-3 text-purple-400" />
+            <Phone className={`absolute left-3 top-3 ${isDark ? "text-purple-300" : "text-purple-400"}`} />
             <input
               type="tel"
               placeholder="+91"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full pl-10 px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
             />
           </div>
 
@@ -209,7 +223,7 @@ function Signup() {
               placeholder="Enter OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-purple-300 bg-white/10 text-purple-900 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className={`w-full px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
             />
           )}
 
@@ -217,7 +231,7 @@ function Signup() {
             <button
               onClick={handleSendOtp}
               disabled={loading}
-              className="w-full py-3 border border-purple-400 text-purple-600 rounded-lg font-semibold hover:bg-purple-100 transition-all"
+              className={`w-full py-3 border rounded-lg font-semibold ${isDark ? "border-gray-600 text-white hover:bg-gray-600" : "border-purple-400 text-purple-600 hover:bg-purple-100"} transition-all`}
             >
               Send OTP
             </button>
@@ -234,12 +248,12 @@ function Signup() {
 
         <div id="recaptcha-container"></div>
 
-        {successMsg && <p className="mt-4 text-green-600 font-semibold text-center">{successMsg}</p>}
-        {errorMsg && <p className="mt-4 text-red-600 font-semibold text-center">{errorMsg}</p>}
+        {successMsg && <p className="mt-4 font-semibold text-center text-green-500">{successMsg}</p>}
+        {errorMsg && <p className="mt-4 font-semibold text-center text-red-500">{errorMsg}</p>}
 
-        <p className="text-center text-sm text-purple-500 mt-4">
+        <p className={`text-center text-sm mt-4 ${isDark ? "text-gray-300" : "text-purple-500"}`}>
           Already have an account?{" "}
-          <a href="/login" className="text-purple-700 underline hover:text-purple-900">
+          <a href="/login" className={`underline ${isDark ? "text-white hover:text-gray-200" : "text-purple-700 hover:text-purple-900"}`}>
             Log in
           </a>
         </p>

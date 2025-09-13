@@ -1,31 +1,60 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Instagram, Phone } from "lucide-react";
+import { MapPin, Instagram, Phone, Sun, Moon } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroFabric from "../assets/1.jpg";
 import qrCode from "../assets/qr-code.png";
 
 const LandingPage = () => {
+  const [activeSection, setActiveSection] = useState("home");
   const [theme, setTheme] = useState("dark");
 
-  // Load theme from local storage and listen for changes
+  // ✅ Load saved theme from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
     setTheme(savedTheme);
     document.documentElement.classList.toggle("dark", savedTheme === "dark");
-
-    const handleStorageChange = () => {
-      const updatedTheme = localStorage.getItem("theme") || "dark";
-      setTheme(updatedTheme);
-      document.documentElement.classList.toggle("dark", updatedTheme === "dark");
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const scrollToServices = () => {
-    document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
+  // ✅ Toggle theme
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
+
+  // ✅ Scroll to section
+  const scrollToSection = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // ✅ Active section highlight on scroll
+  useEffect(() => {
+    const sections = ["home", "services", "about", "contact"];
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + window.innerHeight / 2;
+      sections.forEach((section) => {
+        const elem = document.getElementById(section);
+        if (elem) {
+          const top = elem.offsetTop;
+          const bottom = top + elem.offsetHeight;
+          if (scrollPos >= top && scrollPos < bottom) {
+            setActiveSection(section);
+          }
+        }
+      });
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const links = [
+    { name: "Home", id: "home" },
+    { name: "Services", id: "services" },
+    { name: "About", id: "about" },
+    { name: "Contact", id: "contact" },
+  ];
 
   return (
     <div
@@ -33,7 +62,57 @@ const LandingPage = () => {
         theme === "dark" ? "bg-black text-white" : "bg-white text-black"
       }`}
     >
-      {/* HERO SECTION */}
+      {/* ==================== NAVBAR ==================== */}
+      <nav
+        className={`fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center backdrop-blur-lg transition-all duration-500 ${
+          theme === "dark" ? "bg-black/40" : "bg-white/40"
+        }`}
+      >
+        <div className="flex items-center gap-1">
+          <Link
+            to="/"
+            className={`text-2xl font-bold tracking-wide cursor-pointer transition-all duration-300 ${
+              theme === "dark"
+                ? "text-white hover:text-pink-400"
+                : "text-black hover:text-pink-500"
+            }`}
+          >
+            Nidhi Enterprises
+          </Link>
+        </div>
+
+        <div className="flex items-center space-x-6 text-lg">
+          {links.map((link) => (
+            <button
+              key={link.id}
+              onClick={() => scrollToSection(link.id)}
+              className={`transition px-2 py-1 font-medium ${
+                activeSection === link.id
+                  ? "text-pink-400"
+                  : theme === "dark"
+                  ? "text-white hover:text-pink-300"
+                  : "text-black hover:text-pink-500"
+              }`}
+            >
+              {link.name}
+            </button>
+          ))}
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full border border-gray-400 hover:scale-110 transition bg-opacity-50 backdrop-blur-lg"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-6 h-6 text-yellow-400 transition-transform duration-300" />
+            ) : (
+              <Moon className="w-6 h-6 text-gray-700 transition-transform duration-300" />
+            )}
+          </button>
+        </div>
+      </nav>
+
+      {/* ==================== HERO SECTION ==================== */}
       <section
         id="home"
         className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-900 to-pink-700 px-6"
@@ -46,23 +125,25 @@ const LandingPage = () => {
           transition={{ duration: 2, ease: "easeOut" }}
         />
         <div className="relative z-10 max-w-4xl text-center">
-          <motion.button
-            onClick={scrollToServices}
-            className={`px-12 py-4 border rounded-full backdrop-blur font-semibold text-lg transition ${
-              theme === "dark"
-                ? "border-white/40 bg-white/10 text-white hover:bg-white/30"
-                : "border-black/40 bg-black/10 text-black hover:bg-black/20"
-            }`}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            START SHOPPING
-          </motion.button>
+          {/* ✅ Fixed: Wrap button inside Link */}
+          <Link to="/products">
+            <motion.button
+              className={`px-12 py-4 border rounded-full backdrop-blur font-semibold text-lg transition ${
+                theme === "dark"
+                  ? "border-white/40 bg-white/10 text-white hover:bg-white/30"
+                  : "border-black/40 bg-black/10 text-black hover:bg-black/20"
+              }`}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            >
+              START SHOPPING
+            </motion.button>
+          </Link>
         </div>
       </section>
 
-      {/* SERVICES SECTION */}
+      {/* ==================== SERVICES SECTION ==================== */}
       <section
         id="services"
         className={`py-40 px-6 md:px-20 transition-colors ${
@@ -85,9 +166,7 @@ const LandingPage = () => {
           variants={{
             hidden: {},
             visible: {
-              transition: {
-                staggerChildren: 0.15,
-              },
+              transition: { staggerChildren: 0.15 },
             },
           }}
           initial="hidden"
@@ -133,14 +212,8 @@ const LandingPage = () => {
                 loading="lazy"
               />
               <div className="flex-1 text-center md:text-left space-y-4">
-                <h3 className="text-3xl font-bold text-pink-400">
-                  {service.title}
-                </h3>
-                <p
-                  className={`${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
+                <h3 className="text-3xl font-bold text-pink-400">{service.title}</h3>
+                <p className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
                   {service.desc}
                 </p>
                 <button className="mt-4 px-6 py-3 border border-pink-400 text-pink-400 rounded-full font-semibold hover:bg-pink-400 hover:text-black transition">
@@ -152,7 +225,7 @@ const LandingPage = () => {
         </motion.div>
       </section>
 
-      {/* ABOUT US SECTION */}
+      {/* ==================== ABOUT US SECTION ==================== */}
       <section
         id="about"
         className={`py-40 px-6 md:px-20 transition-colors ${
@@ -160,7 +233,7 @@ const LandingPage = () => {
         }`}
       >
         <div className="max-w-7xl mx-auto md:flex md:space-x-16 items-center">
-          {/* Text Content */}
+          {/* Text */}
           <div className="md:w-1/2 space-y-8">
             <h2 className="text-4xl font-bold text-pink-400">About Us</h2>
             <p
@@ -168,21 +241,18 @@ const LandingPage = () => {
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               }`}
             >
-              Nidhi Enterprises is a premier textile house based in Ahmedabad
-              specializing in premium suits, shirtings, and trousers. We
-              combine timeless craftsmanship with cutting-edge fabric
-              technology to cater to the modern wardrobe needs of our
-              customers. Our commitment is towards sustainable innovation and
-              unparalleled quality.
+              Nidhi Enterprises is a premier textile house based in Ahmedabad specializing in
+              premium suits, shirtings, and trousers. We combine timeless craftsmanship with
+              cutting-edge fabric technology to cater to the modern wardrobe needs of our
+              customers.
             </p>
             <p
               className={`leading-relaxed text-lg ${
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               }`}
             >
-              With years of expertise in tailoring and fabric sourcing, we
-              ensure each piece is a blend of style, comfort, and durability,
-              perfected to your taste.
+              With years of expertise in tailoring and fabric sourcing, we ensure each piece is a
+              blend of style, comfort, and durability, perfected to your taste.
             </p>
 
             {/* Contact Icons */}
@@ -217,7 +287,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* QR Code Image */}
+          {/* QR Code */}
           <div className="mt-10 md:mt-0 md:w-1/2 flex justify-center">
             <img
               src={qrCode}
@@ -228,7 +298,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CONTACT US SECTION */}
+      {/* ==================== CONTACT US SECTION ==================== */}
       <section
         id="contact"
         className={`py-20 px-6 md:px-20 transition-colors ${
