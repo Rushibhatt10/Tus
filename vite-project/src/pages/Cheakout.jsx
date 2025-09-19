@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CreditCard, MapPin, ShoppingBag, Lock } from "lucide-react";
+import { MapPin, ShoppingBag, Lock } from "lucide-react";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, setDoc, doc } from "firebase/firestore";
 
 export default function Checkout() {
   const location = useLocation();
@@ -109,7 +109,24 @@ export default function Checkout() {
         },
       };
 
+      // Save order in root orders collection
       await addDoc(collection(db, "orders"), orderData);
+
+      // Save/update shipping address under user profile for future use
+      const shippingToStore = {
+        name,
+        mobile,
+        email,
+        line1: address,
+        line2: street || "",
+        landmark: landmark || "",
+        city,
+        state,
+        zip: pincode,
+        type: addressType,
+        updatedAt: serverTimestamp(),
+      };
+      await addDoc(collection(db, "users", user.uid, "addresses"), shippingToStore);
 
       alert("✅ Order placed successfully!");
       navigate("/");
@@ -123,7 +140,7 @@ export default function Checkout() {
     return (
       <div className="flex justify-center items-center h-screen">
         <svg
-          className="animate-spin h-12 w-12 text-purple-600"
+          className="animate-spin h-12 w-12 text-gray-600 dark:text-gray-300"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -155,107 +172,88 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 py-10 text-gray-900 dark:text-white">
+    <div
+      className={`min-h-screen px-4 py-10 text-gray-900 dark:text-white bg-white dark:bg-black`}
+    >
       <motion.div
-        className="max-w-5xl mx-auto backdrop-blur-xl bg-white/40 dark:bg-gray-800/50 border border-white/50 dark:border-gray-700 rounded-3xl shadow-2xl p-8 md:p-12"
+        className="max-w-5xl mx-auto bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl p-8 md:p-12"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-4xl font-extrabold text-center text-purple-800 dark:text-purple-400 mb-10">
+        <h2 className="text-4xl font-extrabold text-center mb-10">
           Checkout
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Left: Shipping & Payment */}
           <div>
-            <h3 className="text-2xl font-semibold flex items-center gap-3 text-purple-700 mb-6">
+            <h3 className="text-2xl font-semibold flex items-center gap-3 mb-6">
               <MapPin size={22} /> Shipping Details
             </h3>
             <div className="space-y-5">
-              {/* Name & Contact */}
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-              <input
-                type="tel"
-                placeholder="Mobile Number"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-                className="w-full rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-              <input
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-              {/* Address Lines */}
-              <input
-                type="text"
-                placeholder="Flat/House No., Building, Company, Apartment"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Area, Street, Sector, Village"
-                value={street}
-                onChange={(e) => setStreet(e.target.value)}
-                className="w-full rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Landmark (Optional)"
-                value={landmark}
-                onChange={(e) => setLandmark(e.target.value)}
-                className="w-full rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-              {/* Location */}
+              {/* Inputs */}
+              {[
+                { placeholder: "Full Name", value: name, setter: setName },
+                { placeholder: "Mobile Number", value: mobile, setter: setMobile },
+                { placeholder: "Email Address", value: email, setter: setEmail },
+                {
+                  placeholder: "Flat/House No., Building, Company, Apartment",
+                  value: address,
+                  setter: setAddress,
+                },
+                {
+                  placeholder: "Area, Street, Sector, Village",
+                  value: street,
+                  setter: setStreet,
+                },
+                {
+                  placeholder: "Landmark (Optional)",
+                  value: landmark,
+                  setter: setLandmark,
+                },
+              ].map((field, idx) => (
+                <input
+                  key={idx}
+                  type="text"
+                  placeholder={field.placeholder}
+                  value={field.value}
+                  onChange={(e) => field.setter(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                />
+              ))}
+
               <div className="grid grid-cols-2 gap-5">
                 <input
                   type="text"
                   placeholder="Town / City"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                  p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
                 />
                 <input
                   type="text"
                   placeholder="State"
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  className="rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                  p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-5">
-                <input
-                  type="text"
-                  placeholder="Pincode / ZIP Code"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  className="rounded-xl border border-purple-300 bg-white/60 dark:bg-gray-700/60 
-                  p-4 text-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                />
-              </div>
-              {/* Address Type */}
+
+              <input
+                type="text"
+                placeholder="Pincode / ZIP Code"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
+              />
+
               <div className="flex gap-4 items-center">
                 {["Home", "Work", "Other"].map((type) => (
-                  <label key={type} className="flex items-center gap-2 text-lg text-gray-700 dark:text-gray-300">
+                  <label
+                    key={type}
+                    className="flex items-center gap-2 text-lg text-gray-700 dark:text-gray-300"
+                  >
                     <input
                       type="radio"
                       name="addressType"
@@ -272,8 +270,8 @@ export default function Checkout() {
           </div>
 
           {/* Right: Order Summary */}
-          <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-3xl border border-white/60 dark:border-gray-700 shadow-xl p-6">
-            <h3 className="text-2xl font-semibold flex items-center gap-3 text-purple-800 dark:text-purple-400 mb-6">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl p-6">
+            <h3 className="text-2xl font-semibold flex items-center gap-3 mb-6">
               <ShoppingBag size={22} /> Order Summary
             </h3>
 
@@ -285,7 +283,7 @@ export default function Checkout() {
                   className="w-24 h-24 rounded-xl object-cover border border-purple-200 dark:border-gray-600"
                 />
                 <div className="flex-1">
-                  <p className="text-lg font-medium text-purple-800 dark:text-purple-400">
+                  <p className="text-lg font-medium">
                     {item.name}
                   </p>
                   <p className="text-gray-600 dark:text-gray-300">
@@ -305,11 +303,10 @@ export default function Checkout() {
                         newQty[idx] = Number(e.target.value);
                         setQuantities(newQty);
                       }}
-                      className="w-16 rounded-lg border border-purple-300 text-center text-lg dark:border-gray-600"
+                      className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 text-center text-lg dark:bg-gray-800"
                     />
                   </div>
 
-                  {/* Discount Badge */}
                   {quantities[idx] > 10 && (
                     <div className="inline-block mt-2 px-2 py-1 text-sm font-semibold text-green-700 bg-green-200 rounded-full">
                       10% discount applied
@@ -319,14 +316,13 @@ export default function Checkout() {
               </div>
             ))}
 
-            {/* Extra discount line */}
             {discountTotal > 0 && (
               <div className="text-green-600 dark:text-green-400 mb-2 font-medium">
                 Extra 10% discount above 10 Meter purchase: -₹{discountTotal.toFixed(2)}
               </div>
             )}
 
-            <div className="border-t border-purple-200 dark:border-gray-600 my-4"></div>
+            <div className="border-t border-gray-200 dark:border-gray-600 my-4"></div>
 
             <div className="flex justify-between text-lg text-gray-700 dark:text-gray-300 mb-2">
               <span>Subtotal</span>
@@ -340,7 +336,7 @@ export default function Checkout() {
               <span>Tax (5%)</span>
               <span>₹{tax.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-2xl font-bold text-purple-800 dark:text-purple-400">
+            <div className="flex justify-between text-2xl font-bold">
               <span>Total</span>
               <span>₹{total.toFixed(2)}</span>
             </div>
@@ -351,7 +347,7 @@ export default function Checkout() {
 
             <motion.button
               onClick={handlePlaceOrder}
-              className="w-full mt-8 bg-gradient-to-r from-purple-600 to-pink-500 text-white py-4 rounded-2xl text-xl font-semibold shadow-lg hover:opacity-90"
+              className="w-full mt-8 bg-black text-white py-4 rounded-2xl text-xl font-semibold shadow-lg hover:bg-gray-800"
               whileTap={{ scale: 0.95 }}
             >
               Place Order

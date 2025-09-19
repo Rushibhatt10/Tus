@@ -1,1 +1,4 @@
 @import "tailwindcss";
+
+/* Ensure dark mode is class-based across the app (Tailwind v4) */
+@custom-variant dark (&:where(.dark, .dark *));

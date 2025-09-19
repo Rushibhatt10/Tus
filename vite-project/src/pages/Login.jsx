@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { auth, provider } from "../firebase.jsx";
 import {
   signInWithEmailAndPassword,
@@ -7,9 +7,11 @@ import {
   RecaptchaVerifier,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { ThemeContext } from "../context/ThemeContext";
 import { Mail, Lock, Phone } from "lucide-react";
 
-function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
+function Login() {
+  const { theme } = useContext(ThemeContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
@@ -103,25 +105,25 @@ function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
 
   // Dynamic theme classes
   const isDark = theme === "dark";
-  const bgClass = isDark ? "bg-gray-900" : "bg-gradient-to-br from-purple-100 via-white to-purple-200";
+  const bgClass = isDark ? "bg-black text-white" : "bg-white text-black";
   const cardClass = isDark
-    ? "bg-gray-800/60 text-white border-gray-700"
-    : "bg-white/10 text-purple-900 border-purple-400";
+    ? "bg-neutral-900 text-white border border-gray-800"
+    : "bg-white text-black border border-gray-200";
   const inputClass = isDark
-    ? "bg-gray-700 text-white placeholder-gray-400 border-gray-600 focus:ring-purple-400"
-    : "bg-white/10 text-purple-900 placeholder-purple-400 border-purple-300 focus:ring-purple-400";
+    ? "bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:ring-gray-500"
+    : "bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-gray-400";
 
   return (
     <div className={`min-h-screen flex items-center justify-center ${bgClass}`}>
       <div className={`w-full max-w-md p-8 ${cardClass} backdrop-blur-lg shadow-2xl rounded-2xl space-y-6`}>
-        <h2 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-700">
+        <h2 className="text-4xl font-extrabold text-center">
           Welcome Back
         </h2>
 
         {/* Email Login */}
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <div className="relative">
-            <Mail className={`absolute left-3 top-3 ${isDark ? "text-purple-300" : "text-purple-400"}`} />
+            <Mail className={`absolute left-3 top-3 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
             <input
               type="email"
               placeholder="Email"
@@ -132,7 +134,7 @@ function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
             />
           </div>
           <div className="relative">
-            <Lock className={`absolute left-3 top-3 ${isDark ? "text-purple-300" : "text-purple-400"}`} />
+            <Lock className={`absolute left-3 top-3 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
             <input
               type="password"
               placeholder="Password"
@@ -145,19 +147,19 @@ function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white font-semibold rounded-lg transition-transform hover:scale-105 disabled:opacity-50"
+            className="w-full py-3 bg-black text-white hover:bg-gray-800 font-semibold rounded-lg transition-transform hover:scale-105 disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login with Email"}
           </button>
         </form>
 
-        <div className={`text-center ${isDark ? "text-gray-300" : "text-purple-600"}`}>or</div>
+        <div className={`text-center ${isDark ? "text-gray-300" : "text-gray-600"}`}>or</div>
 
         {/* Google Login */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className={`w-full flex items-center justify-center gap-3 py-3 border rounded-lg font-medium ${isDark ? "text-white border-gray-600 bg-gray-700 hover:bg-gray-600" : "text-purple-700 border-purple-300 bg-white/10 hover:bg-purple-50"} transition-all`}
+          className={`w-full flex items-center justify-center gap-3 py-3 border rounded-lg font-medium ${isDark ? "text-white border-gray-700 bg-gray-800 hover:bg-gray-700" : "text-black border-gray-300 bg-white hover:bg-gray-50"} transition-all`}
         >
           <img
             src="https://www.svgrepo.com/show/355037/google.svg"
@@ -170,7 +172,7 @@ function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
         {/* Phone Login */}
         <div className="space-y-4">
           <div className="relative">
-            <Phone className={`absolute left-3 top-3 ${isDark ? "text-purple-300" : "text-purple-400"}`} />
+            <Phone className={`absolute left-3 top-3 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
             <input
               type="tel"
               placeholder="+91"
@@ -194,7 +196,7 @@ function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
             <button
               onClick={handleSendOtp}
               disabled={loading}
-              className={`w-full py-3 border rounded-lg font-semibold ${isDark ? "border-gray-600 text-white hover:bg-gray-600" : "border-purple-400 text-purple-600 hover:bg-purple-100"} transition-all`}
+              className={`w-full py-3 border rounded-lg font-semibold ${isDark ? "border-gray-700 text-white hover:bg-gray-800" : "border-gray-300 text-black hover:bg-gray-100"} transition-all`}
             >
               Send OTP
             </button>
@@ -202,7 +204,7 @@ function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
             <button
               onClick={handleVerifyOtp}
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-purple-400 to-purple-600 text-white rounded-lg font-semibold hover:from-purple-500 hover:to-purple-700 transition-all"
+              className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-all"
             >
               Verify OTP
             </button>
@@ -218,9 +220,9 @@ function Login({ theme }) { // <-- receive theme prop ('light' | 'dark')
           <p className="mt-4 font-semibold text-center text-red-500">{errorMsg}</p>
         )}
 
-        <p className={`text-center text-sm mt-4 ${isDark ? "text-gray-300" : "text-purple-500"}`}>
+        <p className={`text-center text-sm mt-4 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
           Don't have an account?{" "}
-          <a href="/signup" className={`underline ${isDark ? "text-white hover:text-gray-200" : "text-purple-700 hover:text-purple-900"}`}>
+          <a href="/signup" className={`underline ${isDark ? "text-white hover:text-gray-200" : "text-black hover:text-gray-800"}`}>
             Sign Up
           </a>
         </p>

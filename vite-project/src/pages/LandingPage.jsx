@@ -1,35 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Instagram, Phone, Sun, Moon } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroFabric from "../assets/1.jpg";
+import { ThemeContext } from "../context/ThemeContext";
+
+// ✅ Import ALL your hero images
+import hero1 from "../assets/1.jpg";
+import hero2 from "../assets/2.jpeg";
+import hero3 from "../assets/3.jpg";
+import hero4 from "../assets/4.jpg";
+import hero5 from "../assets/5.jpeg"; 
+import hero6 from "../assets/6.jpg";
+import hero7 from "../assets/7.jpg";
+import hero8 from "../assets/8.jpeg";
+
 import qrCode from "../assets/qr-code.png";
 
 const LandingPage = () => {
   const [activeSection, setActiveSection] = useState("home");
-  const [theme, setTheme] = useState("dark");
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const [randomHero, setRandomHero] = useState(null);
 
-  // ✅ Load saved theme from localStorage
+  // ✅ Store all hero images
+  const heroImages = [hero1, hero2, hero3, hero4, hero5];
+
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "dark";
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
+    const randomIndex = Math.floor(Math.random() * heroImages.length);
+    setRandomHero(heroImages[randomIndex]);
   }, []);
 
-  // ✅ Toggle theme
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-  };
-
-  // ✅ Scroll to section
   const scrollToSection = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // ✅ Active section highlight on scroll
   useEffect(() => {
     const sections = ["home", "services", "about", "contact"];
     const handleScroll = () => {
@@ -56,6 +59,10 @@ const LandingPage = () => {
     { name: "Contact", id: "contact" },
   ];
 
+  // ✅ Dynamic accent color
+  const accentColor = theme === "dark" ? "text-white hover:text-gray-300" : "text-black hover:text-gray-700";
+  const borderAccent = theme === "dark" ? "border-white text-white hover:bg-white hover:text-black" : "border-black text-black hover:bg-black hover:text-white";
+
   return (
     <div
       className={`min-h-screen transition-colors duration-500 ${
@@ -65,17 +72,13 @@ const LandingPage = () => {
       {/* ==================== NAVBAR ==================== */}
       <nav
         className={`fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center backdrop-blur-lg transition-all duration-500 ${
-          theme === "dark" ? "bg-black/40" : "bg-white/40"
+          theme === "dark" ? "bg-black/40" : "bg-white/60"
         }`}
       >
         <div className="flex items-center gap-1">
           <Link
             to="/"
-            className={`text-2xl font-bold tracking-wide cursor-pointer transition-all duration-300 ${
-              theme === "dark"
-                ? "text-white hover:text-pink-400"
-                : "text-black hover:text-pink-500"
-            }`}
+            className={`text-2xl font-bold tracking-wide cursor-pointer transition-all duration-300 ${accentColor}`}
           >
             Nidhi Enterprises
           </Link>
@@ -88,10 +91,8 @@ const LandingPage = () => {
               onClick={() => scrollToSection(link.id)}
               className={`transition px-2 py-1 font-medium ${
                 activeSection === link.id
-                  ? "text-pink-400"
-                  : theme === "dark"
-                  ? "text-white hover:text-pink-300"
-                  : "text-black hover:text-pink-500"
+                  ? theme === "dark" ? "text-white" : "text-black"
+                  : accentColor
               }`}
             >
               {link.name}
@@ -115,24 +116,22 @@ const LandingPage = () => {
       {/* ==================== HERO SECTION ==================== */}
       <section
         id="home"
-        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-900 to-pink-700 px-6"
+        className="relative min-h-screen flex items-center justify-center overflow-hidden px-6"
       >
-        <motion.div
-          className="absolute inset-0 bg-cover bg-center brightness-75"
-          style={{ backgroundImage: `url(${heroFabric})` }}
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 2, ease: "easeOut" }}
-        />
+        {randomHero && (
+          <motion.div
+            className="absolute inset-0 bg-cover bg-center brightness-75"
+            style={{ backgroundImage: `url(${randomHero})` }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5, ease: "easeInOut" }}
+          />
+        )}
+
         <div className="relative z-10 max-w-4xl text-center">
-          {/* ✅ Fixed: Wrap button inside Link */}
           <Link to="/products">
             <motion.button
-              className={`px-12 py-4 border rounded-full backdrop-blur font-semibold text-lg transition ${
-                theme === "dark"
-                  ? "border-white/40 bg-white/10 text-white hover:bg-white/30"
-                  : "border-black/40 bg-black/10 text-black hover:bg-black/20"
-              }`}
+              className={`px-12 py-4 border rounded-full backdrop-blur font-semibold text-lg transition ${borderAccent}`}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
@@ -147,13 +146,11 @@ const LandingPage = () => {
       <section
         id="services"
         className={`py-40 px-6 md:px-20 transition-colors ${
-          theme === "dark"
-            ? "bg-gradient-to-tr from-gray-900 via-black to-gray-900"
-            : "bg-gradient-to-tr from-gray-100 via-white to-gray-100"
+          theme === "dark" ? "bg-black" : "bg-white"
         }`}
       >
         <motion.h2
-          className="text-4xl md:text-5xl font-bold text-center mb-16 text-pink-400"
+          className={`text-4xl md:text-5xl font-bold text-center mb-16 ${theme === "dark" ? "text-white" : "text-black"}`}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -165,9 +162,7 @@ const LandingPage = () => {
           className="max-w-7xl mx-auto flex flex-col gap-20"
           variants={{
             hidden: {},
-            visible: {
-              transition: { staggerChildren: 0.15 },
-            },
+            visible: { transition: { staggerChildren: 0.15 } },
           }}
           initial="hidden"
           whileInView="visible"
@@ -193,16 +188,11 @@ const LandingPage = () => {
             <motion.div
               key={idx}
               className={`flex flex-col md:flex-row items-center gap-12 backdrop-blur-xl rounded-3xl shadow-lg p-8 border transition ${
-                theme === "dark"
-                  ? "bg-white/10 border-white/20"
-                  : "bg-black/5 border-gray-300"
+                theme === "dark" ? "bg-white/10 border-white/20" : "bg-black/5 border-gray-300"
               } ${idx % 2 !== 0 ? "md:flex-row-reverse" : ""}`}
               initial={{ opacity: 0, y: 40, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0 0 30px 2px rgba(232, 121, 249, 0.7)",
-              }}
+              whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
               <img
@@ -212,11 +202,13 @@ const LandingPage = () => {
                 loading="lazy"
               />
               <div className="flex-1 text-center md:text-left space-y-4">
-                <h3 className="text-3xl font-bold text-pink-400">{service.title}</h3>
+                <h3 className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>
+                  {service.title}
+                </h3>
                 <p className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
                   {service.desc}
                 </p>
-                <button className="mt-4 px-6 py-3 border border-pink-400 text-pink-400 rounded-full font-semibold hover:bg-pink-400 hover:text-black transition">
+                <button className={`mt-4 px-6 py-3 rounded-full font-semibold transition border ${borderAccent}`}>
                   Explore Now
                 </button>
               </div>
@@ -225,7 +217,7 @@ const LandingPage = () => {
         </motion.div>
       </section>
 
-      {/* ==================== ABOUT US SECTION ==================== */}
+      {/* ==================== ABOUT US ==================== */}
       <section
         id="about"
         className={`py-40 px-6 md:px-20 transition-colors ${
@@ -233,35 +225,24 @@ const LandingPage = () => {
         }`}
       >
         <div className="max-w-7xl mx-auto md:flex md:space-x-16 items-center">
-          {/* Text */}
           <div className="md:w-1/2 space-y-8">
-            <h2 className="text-4xl font-bold text-pink-400">About Us</h2>
-            <p
-              className={`leading-relaxed text-lg ${
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <h2 className={`text-4xl font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>
+              About Us
+            </h2>
+            <p className={`leading-relaxed text-lg ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
               Nidhi Enterprises is a premier textile house based in Ahmedabad specializing in
-              premium suits, shirtings, and trousers. We combine timeless craftsmanship with
-              cutting-edge fabric technology to cater to the modern wardrobe needs of our
-              customers.
+              premium suits, shirtings, and trousers...
             </p>
-            <p
-              className={`leading-relaxed text-lg ${
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              With years of expertise in tailoring and fabric sourcing, we ensure each piece is a
-              blend of style, comfort, and durability, perfected to your taste.
+            <p className={`leading-relaxed text-lg ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              With years of expertise in tailoring and fabric sourcing...
             </p>
 
-            {/* Contact Icons */}
-            <div className="flex flex-wrap gap-6 mt-6 text-pink-400">
+            <div className={`flex flex-wrap gap-6 mt-6 ${theme === "dark" ? "text-white" : "text-black"}`}>
               <a
                 href="https://maps.app.goo.gl/1QzMtkjQcLWxtoCG9"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-2 hover:text-pink-600 transition"
+                className="flex items-center space-x-2 hover:opacity-80 transition"
               >
                 <MapPin className="w-6 h-6" />
                 <span>Ahmedabad, India</span>
@@ -270,7 +251,7 @@ const LandingPage = () => {
                 href="https://instagram.com/yourprofile"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-2 hover:text-pink-600 transition"
+                className="flex items-center space-x-2 hover:opacity-80 transition"
               >
                 <Instagram className="w-6 h-6" />
                 <span>@nidhienterprises</span>
@@ -279,7 +260,7 @@ const LandingPage = () => {
                 href="https://wa.me/9265083688"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-2 hover:text-pink-600 transition"
+                className="flex items-center space-x-2 hover:opacity-80 transition"
               >
                 <Phone className="w-6 h-6" />
                 <span>Chat with us</span>
@@ -287,7 +268,6 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* QR Code */}
           <div className="mt-10 md:mt-0 md:w-1/2 flex justify-center">
             <img
               src={qrCode}
@@ -298,24 +278,22 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ==================== CONTACT US SECTION ==================== */}
+      {/* ==================== CONTACT ==================== */}
       <section
         id="contact"
-        className={`py-20 px-6 md:px-20 transition-colors ${
+        className={`py-35 px-6 md:px-20 transition-colors ${
           theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
         }`}
       >
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-4xl mb-8 text-center text-pink-400 font-bold">
+          <h2 className={`text-4xl mb-8 text-center font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>
             Contact Us
           </h2>
           <form
             action="https://getform.io/f/anlnxjva"
             method="POST"
             className={`flex flex-col gap-6 p-8 rounded-xl shadow-lg ${
-              theme === "dark"
-                ? "bg-white/10 backdrop-blur-lg"
-                : "bg-white border border-gray-200"
+              theme === "dark" ? "bg-white/10 backdrop-blur-lg" : "bg-white border border-gray-200"
             }`}
           >
             <input
@@ -341,7 +319,7 @@ const LandingPage = () => {
             />
             <button
               type="submit"
-              className="bg-pink-400 text-black font-semibold py-4 rounded-full hover:bg-pink-500 transition"
+              className={`py-4 rounded-full font-semibold transition ${theme === "dark" ? "bg-white text-black hover:bg-gray-200" : "bg-black text-white hover:bg-gray-800"}`}
             >
               Send Message
             </button>
