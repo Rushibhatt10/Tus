@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Instagram, Phone, Sun, Moon } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ThemeContext } from "../context/ThemeContext";
 
 // ✅ Import ALL your hero images
@@ -17,6 +17,7 @@ import hero8 from "../assets/8.jpeg";
 import qrCode from "../assets/qr-code.png";
 
 const LandingPage = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("home");
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [randomHero, setRandomHero] = useState(null);
@@ -208,7 +209,14 @@ const LandingPage = () => {
                 <p className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
                   {service.desc}
                 </p>
-                <button className={`mt-4 px-6 py-3 rounded-full font-semibold transition border ${borderAccent}`}>
+                <button 
+                  onClick={() => {
+                    // Map: Premium Suits -> SUIT, Shirtings & Shirts -> SHIRT, Pants & Trousers -> PANT
+                    const types = ['SUIT', 'SHIRT', 'PANT'];
+                    navigate(`/products?type=${types[idx]}`);
+                  }}
+                  className={`mt-4 px-6 py-3 rounded-full font-semibold transition border ${borderAccent}`}
+                >
                   Explore Now
                 </button>
               </div>

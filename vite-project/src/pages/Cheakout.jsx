@@ -18,6 +18,9 @@ export default function Checkout() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantities, setQuantities] = useState(cartItems.map(() => 1));
+  const [selectedLengths, setSelectedLengths] = useState(cartItems.map(() => ""));
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [orderId, setOrderId] = useState("");
 
   // Shipping Form States
   const [name, setName] = useState("");
@@ -33,7 +36,26 @@ export default function Checkout() {
 
   // Charges
   const shippingCharge = 50;
-  const taxRate = 0.05; // 5% GST
+  
+  // Dynamic tax rates based on amount
+  const getTaxRate = (amount) => {
+    if (amount <= 1000) return 0.05; // 5% GST for amount <= 1000
+    if (amount <= 5000) return 0.12; // 12% GST for amount 1001-5000
+    return 0.18; // 18% GST for amount > 5000
+  };
+
+  // Fabric length options based on product type
+  const getFabricLengthOptions = (productType) => {
+    if (productType === "SHIRT") return ["1.40 m", "1.60 m", "1.80 m", "2.20 m"];
+    if (productType === "SUIT") return ["1.20 m", "1.30 m", "1.50 m", "2.25 m", "3.25 m"];
+    return ["1.20 m", "1.40 m", "1.60 m", "1.80 m", "2.0 m"]; // Default for PANT
+  };
+
+  // Get price for selected length
+  const getLengthPrice = (item, length) => {
+    if (!length || !item.sizePricing || !item.sizePricing[length]) return item.price;
+    return item.sizePricing[length] || item.price;
+  };
 
   // Auth listener
   useEffect(() => {
@@ -52,11 +74,13 @@ export default function Checkout() {
   // Subtotal & Discounts Calculation
   const itemTotals = cartItems.map((item, idx) => {
     const qty = quantities[idx];
-    const price = Number(item.price || 0);
+    const selectedLength = selectedLengths[idx];
+    // Use length-specific price if available, otherwise use default price
+    const price = selectedLength ? Number(getLengthPrice(item, selectedLength)) : Number(item.price || 0);
     let itemTotal = price * qty;
     let itemDiscount = 0;
 
-    // Extra 10% discount if quantity > 10
+    // Extra 10% discount if quantity > 10 meters
     if (qty > 10) {
       itemDiscount = itemTotal * 0.1;
       itemTotal -= itemDiscount;
@@ -67,8 +91,27 @@ export default function Checkout() {
 
   const subtotal = itemTotals.reduce((sum, it) => sum + it.itemTotal, 0);
   const discountTotal = itemTotals.reduce((sum, it) => sum + it.itemDiscount, 0);
-  const tax = subtotal * taxRate;
-  const total = subtotal + tax + shippingCharge;
+  
+  // Calculate total number of cloth pieces (items)
+  const totalClothItems = quantities.reduce((sum, qty) => sum + qty, 0);
+  
+  // Volume-based discount on subtotal
+  let volumeDiscount = 0;
+  let volumeDiscountPercent = 0;
+  if (totalClothItems >= 10) {
+    volumeDiscountPercent = 10;
+    volumeDiscount = subtotal * 0.10;
+  } else if (totalClothItems >= 5) {
+    volumeDiscountPercent = 5;
+    volumeDiscount = subtotal * 0.05;
+  }
+  
+  const discountedSubtotal = subtotal - volumeDiscount;
+  
+  // Calculate dynamic tax
+  const taxRate = getTaxRate(discountedSubtotal);
+  const tax = discountedSubtotal * taxRate;
+  const total = discountedSubtotal + tax + shippingCharge;
 
   // Place Order -> Firestore
   const handlePlaceOrder = async () => {
@@ -85,15 +128,21 @@ export default function Checkout() {
           id: item.id || null,
           name: item.name,
           price: item.price,
+          selectedLength: selectedLengths[idx] || null,
+          actualPrice: getLengthPrice(item, selectedLengths[idx]) || item.price,
           quantity: quantities[idx],
           subtotal: itemTotals[idx].itemTotal,
           discount: itemTotals[idx].itemDiscount,
         })),
         subtotal,
         discountTotal,
+        volumeDiscount,
+        volumeDiscountPercent,
         tax,
+        taxRate: taxRate * 100,
         shipping: shippingCharge,
         total,
+        totalClothItems,
         createdAt: serverTimestamp(),
         shippingDetails: {
           name,
@@ -110,7 +159,8 @@ export default function Checkout() {
       };
 
       // Save order in root orders collection
-      await addDoc(collection(db, "orders"), orderData);
+      const docRef = await addDoc(collection(db, "orders"), orderData);
+      setOrderId(docRef.id);
 
       // Save/update shipping address under user profile for future use
       const shippingToStore = {
@@ -128,8 +178,13 @@ export default function Checkout() {
       };
       await addDoc(collection(db, "users", user.uid, "addresses"), shippingToStore);
 
-      alert("✅ Order placed successfully!");
-      navigate("/");
+      // Show payment success
+      setPaymentSuccess(true);
+      
+      // Redirect to home after 3 seconds
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
     } catch (error) {
       console.error("Error placing order:", error);
       alert("❌ Failed to place order. Try again.");
@@ -167,6 +222,33 @@ export default function Checkout() {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
         No products to checkout.
+      </div>
+    );
+  }
+
+  if (paymentSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-400 to-green-600">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-3xl shadow-2xl p-12 text-center max-w-md"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring" }}
+            className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+          >
+            <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </motion.div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">Payment Successful!</h2>
+          <p className="text-gray-600 mb-2">Your order has been placed successfully.</p>
+          <p className="text-sm text-gray-500 mb-6">Order ID: {orderId}</p>
+          <p className="text-sm text-gray-500">Redirecting to home...</p>
+        </motion.div>
       </div>
     );
   }
@@ -290,8 +372,31 @@ export default function Checkout() {
                     ₹{item.price}/meter
                   </p>
 
+                  {/* Fabric Length Selection */}
+                  <div className="mt-2">
+                    <label className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1 block">
+                      Fabric Length:
+                    </label>
+                    <select
+                      value={selectedLengths[idx]}
+                      onChange={(e) => {
+                        const newLengths = [...selectedLengths];
+                        newLengths[idx] = e.target.value;
+                        setSelectedLengths(newLengths);
+                      }}
+                      className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
+                    >
+                      <option value="">Select Length</option>
+                      {getFabricLengthOptions(item.type || "SHIRT").map(length => (
+                        <option key={length} value={length}>
+                          {length} {item.sizePricing?.[length] ? `- ₹${item.sizePricing[length]}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="mt-2 flex items-center gap-3">
-                    <label className="text-gray-700 dark:text-gray-300 font-medium">
+                    <label className="text-gray-700 dark:text-gray-300 font-medium text-sm">
                       Qty:
                     </label>
                     <input
@@ -307,6 +412,11 @@ export default function Checkout() {
                     />
                   </div>
 
+                  {/* Price Display */}
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Price: ₹{selectedLengths[idx] ? getLengthPrice(item, selectedLengths[idx]) : item.price}
+                  </p>
+
                   {quantities[idx] > 10 && (
                     <div className="inline-block mt-2 px-2 py-1 text-sm font-semibold text-green-700 bg-green-200 rounded-full">
                       10% discount applied
@@ -317,8 +427,8 @@ export default function Checkout() {
             ))}
 
             {discountTotal > 0 && (
-              <div className="text-green-600 dark:text-green-400 mb-2 font-medium">
-                Extra 10% discount above 10 Meter purchase: -₹{discountTotal.toFixed(2)}
+              <div className="text-green-600 dark:text-green-400 mb-2 font-medium text-sm">
+                Quantity Discount (10+ meters per item): -₹{discountTotal.toFixed(2)}
               </div>
             )}
 
@@ -328,12 +438,25 @@ export default function Checkout() {
               <span>Subtotal</span>
               <span>₹{subtotal.toFixed(2)}</span>
             </div>
+            
+            {volumeDiscount > 0 && (
+              <div className="flex justify-between text-lg text-green-600 dark:text-green-400 mb-2">
+                <span>Volume Discount ({volumeDiscountPercent}% on {totalClothItems} items)</span>
+                <span>-₹{volumeDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            
+            <div className="flex justify-between text-lg text-gray-700 dark:text-gray-300 mb-2">
+              <span>Subtotal After Discount</span>
+              <span>₹{discountedSubtotal.toFixed(2)}</span>
+            </div>
+            
             <div className="flex justify-between text-lg text-gray-700 dark:text-gray-300 mb-2">
               <span>Shipping</span>
               <span>₹{shippingCharge}</span>
             </div>
             <div className="flex justify-between text-lg text-gray-700 dark:text-gray-300 mb-2">
-              <span>Tax (5%)</span>
+              <span>GST ({Math.round(taxRate * 100)}%)</span>
               <span>₹{tax.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-2xl font-bold">

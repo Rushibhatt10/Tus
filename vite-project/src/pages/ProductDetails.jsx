@@ -180,7 +180,7 @@ const ProductDetails = () => {
             </div>
 
             {/* Price */}
-            <p className="text-3xl font-bold">₹{product.price}/meter</p>
+            <p className="text-3xl font-bold">₹{product.price}</p>
 
             {/* Buttons */}
             <div className="flex gap-6 mt-6">

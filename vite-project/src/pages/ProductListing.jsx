@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Sun, Moon, Search, User, ShoppingBag, Menu, X } from "lucide-react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
@@ -8,10 +8,13 @@ import { ThemeContext } from "../context/ThemeContext";
 
 export default function ProductListing() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState(searchParams.get("type") || "all");
+  
   const [filters, setFilters] = useState({
     price: "all",
     color: "all",
@@ -26,6 +29,12 @@ export default function ProductListing() {
   const [viewMode, setViewMode] = useState("grid");
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Update selected type when URL changes
+  useEffect(() => {
+    const type = searchParams.get("type") || "all";
+    setSelectedType(type);
+  }, [searchParams]);
 
   // Fetch products
   useEffect(() => {
@@ -63,39 +72,55 @@ export default function ProductListing() {
         product.brand?.toLowerCase().includes(searchLower) ||
         product.description?.toLowerCase().includes(searchLower);
 
+      const matchesType = selectedType === "all" || 
+        (selectedType === "SHIRT" && product.type === "SHIRT") ||
+        (selectedType === "SUIT" && (product.type === "SUIT" || (product.type === "PANT" && product.isPantAsSuit))) ||
+        (selectedType === "PANT" && (product.type === "PANT" || (product.type === "SUIT" && product.isSuitAsPant)));
+
       const matchesPrice =
         filters.price === "all" ||
         (filters.price === "under-1000" && product.price < 1000) ||
-        (filters.price === "1000-3000" && product.price >= 1000 && product.price <= 3000) ||
+        (filters.price === "1000-3000" &&
+          product.price >= 1000 &&
+          product.price <= 3000) ||
         (filters.price === "above-3000" && product.price > 3000);
 
       const matchesColor =
-        filters.color === "all" || product.color?.toLowerCase() === filters.color;
+        filters.color === "all" ||
+        product.color?.toLowerCase() === filters.color;
 
       const matchesCategory =
-        filters.category === "all" || product.category?.toLowerCase() === filters.category;
+        filters.category === "all" ||
+        product.category?.toLowerCase() === filters.category;
 
       const matchesFabric =
-        filters.fabricType === "all" || product.fabricType?.toLowerCase() === filters.fabricType;
+        filters.fabricType === "all" ||
+        product.fabricType?.toLowerCase() === filters.fabricType;
 
       const matchesOccasion =
-        filters.occasion === "all" || product.occasion?.toLowerCase() === filters.occasion;
+        filters.occasion === "all" ||
+        product.occasion?.toLowerCase() === filters.occasion;
 
       const matchesMaterial =
-        filters.material === "all" || product.material?.toLowerCase() === filters.material;
+        filters.material === "all" ||
+        product.material?.toLowerCase() === filters.material;
 
       const matchesAvailability =
         filters.availability === "all" ||
-        product.availability?.toLowerCase() === filters.availability.toLowerCase();
+        product.availability
+          ?.toString()
+          .toLowerCase() === filters.availability.toLowerCase();
 
       const matchesDiscount =
         filters.discount === "all" ||
-        (filters.discount === "discounted" && parseInt(product.discount) > 0) ||
+        (filters.discount === "discounted" &&
+          parseInt(product.discount) > 0) ||
         (filters.discount === "fullprice" &&
           (!product.discount || parseInt(product.discount) === 0));
 
       return (
         matchesSearch &&
+        matchesType &&
         matchesPrice &&
         matchesColor &&
         matchesCategory &&
@@ -107,48 +132,93 @@ export default function ProductListing() {
       );
     });
 
-    if (sortBy === "price-asc") result.sort((a, b) => (a.price || 0) - (b.price || 0));
-    else if (sortBy === "price-desc") result.sort((a, b) => (b.price || 0) - (a.price || 0));
+    if (sortBy === "price-asc")
+      result.sort((a, b) => (a.price || 0) - (b.price || 0));
+    else if (sortBy === "price-desc")
+      result.sort((a, b) => (b.price || 0) - (a.price || 0));
 
     return result;
-  }, [products, searchTerm, filters, sortBy]);
+  }, [products, searchTerm, filters, sortBy, selectedType]);
 
-  // Group products by TYPE (SHIRT, SUIT, PANTS)
+  // Group products by TYPE (Pant-as-Suit logic included)
   const groupedProductsByType = useMemo(() => {
     return filteredAndSortedProducts.reduce((acc, product) => {
-      const type = product.type || "SHIRT"; // Default to SHIRT if type missing
+      let type = product.type || "SHIRT"; // Default to SHIRT if type missing
+
+      // 🔹 Treat Pant marked as Suit as SUIT
+      if (product.type === "PANT" && product.isPantAsSuit) {
+        type = "SUIT";
+      }
+
       if (!acc[type]) acc[type] = [];
       acc[type].push(product);
+      
+      // 🔹 If SUIT is marked as Pant, also show it in PANT section
+      if (product.type === "SUIT" && product.isSuitAsPant) {
+        if (!acc["PANT"]) acc["PANT"] = [];
+        acc["PANT"].push(product);
+      }
+      
       return acc;
     }, {});
   }, [filteredAndSortedProducts]);
 
   // ProductCard
   const ProductCard = ({ product }) => {
-    const imageUrl = product.images?.[0] || "https://via.placeholder.com/150";
-    const cardBg = theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200";
+    const imageUrl =
+      product.images?.[0] || "https://via.placeholder.com/150";
+    const cardBg =
+      theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200";
     const textColor = theme === "dark" ? "text-white" : "text-black";
 
     return (
       <motion.div
         whileHover={{ scale: 1.05 }}
         layout
-        className={`border ${cardBg} rounded-2xl shadow-lg flex flex-col items-center justify-between cursor-pointer transition p-4 w-full max-w-xs h-[380px] mx-auto`}
-        onClick={() => navigate(`/products/${product.id}`, { state: { product } })}
+        className={`border ${cardBg} rounded-2xl shadow-lg flex flex-col items-center justify-between cursor-pointer transition p-4 w-full max-w-xs h-[400px] mx-auto`}
+        onClick={() =>
+          navigate(`/products/${product.id}`, { state: { product } })
+        }
       >
         <div
           className={`w-full h-44 flex items-center justify-center overflow-hidden rounded-xl mb-3 ${
             theme === "dark" ? "bg-black" : "bg-gray-50"
           }`}
         >
-          <img src={imageUrl} alt={product.name} className="object-cover w-full h-full rounded-xl" />
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="object-cover w-full h-full rounded-xl"
+          />
         </div>
         <div className="w-full flex-1 flex flex-col justify-between">
-          <h2 className={`font-semibold text-lg truncate mb-1 ${textColor}`}>{product.name}</h2>
-          <p className={`text-sm truncate mb-1 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+          <h2 className={`font-semibold text-lg truncate mb-1 ${textColor}`}>
+            {product.name}
+          </h2>
+          <p
+            className={`text-sm truncate mb-1 ${
+              theme === "dark" ? "text-gray-300" : "text-gray-600"
+            }`}
+          >
             {product.brand} · {product.fabricType}
           </p>
-          <p className={`font-bold text-xl mt-2 ${textColor}`}>₹{product.price}</p>
+          <p className={`font-bold text-xl mt-2 ${textColor}`}>
+            ₹{product.price}
+          </p>
+
+          {/* 🔹 Show Pant-as-Suit Badge */}
+          {product.type === "PANT" && product.isPantAsSuit && (
+            <span className="inline-block bg-green-500 text-white text-xs px-2 py-1 rounded-full mt-2">
+              Pant as Suit
+            </span>
+          )}
+          
+          {/* 🔹 Show Suit-as-Pant Badge */}
+          {product.type === "SUIT" && product.isSuitAsPant && (
+            <span className="inline-block bg-blue-500 text-white text-xs px-2 py-1 rounded-full mt-2">
+              Suit as Pant
+            </span>
+          )}
         </div>
       </motion.div>
     );
@@ -175,7 +245,9 @@ export default function ProductListing() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        {error}
+      </div>
     );
   }
 
@@ -188,13 +260,17 @@ export default function ProductListing() {
       {/* Navbar */}
       <div
         className={`sticky top-0 z-50 backdrop-blur-md ${
-          theme === "dark" ? "bg-black border-b border-gray-700" : "bg-white border-b border-gray-200"
+          theme === "dark"
+            ? "bg-black border-b border-gray-700"
+            : "bg-white border-b border-gray-200"
         }`}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <div
             onClick={() => navigate("/")}
-            className={`text-2xl font-bold cursor-pointer ${theme === "dark" ? "text-white" : "text-black"}`}
+            className={`text-2xl font-bold cursor-pointer ${
+              theme === "dark" ? "text-white" : "text-black"
+            }`}
           >
             NE
           </div>
@@ -211,22 +287,48 @@ export default function ProductListing() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={`pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400 ${
-                  theme === "dark" ? "border-gray-700 bg-black text-white" : "border-gray-300 bg-white text-black"
+                  theme === "dark"
+                    ? "border-gray-700 bg-black text-white"
+                    : "border-gray-300 bg-white text-black"
                 }`}
               />
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <button onClick={() => navigate("/account")} className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
-              <User className={`w-5 h-5 ${theme === "dark" ? "text-white" : "text-black"}`} />
+            <button
+              onClick={() => navigate("/account")}
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <User
+                className={`w-5 h-5 ${
+                  theme === "dark" ? "text-white" : "text-black"
+                }`}
+              />
             </button>
-            <button onClick={() => navigate("/cart")} className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
-              <ShoppingBag className={`w-5 h-5 ${theme === "dark" ? "text-white" : "text-black"}`} />
+            <button
+              onClick={() => navigate("/cart")}
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <ShoppingBag
+                className={`w-5 h-5 ${
+                  theme === "dark" ? "text-white" : "text-black"
+                }`}
+              />
             </button>
-            <button onClick={toggleTheme} className="p-2 rounded border border-gray-400 hover:scale-110 transition">
-              {theme === "dark" ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-700" />}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded border border-gray-400 hover:scale-110 transition"
+            >
+              {theme === "dark" ? (
+                <Sun className="w-5 h-5 text-yellow-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-700" />
+              )}
             </button>
-            <button className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <button
+              className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
@@ -235,11 +337,26 @@ export default function ProductListing() {
 
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center">
-          <h1 className={`text-5xl md:text-6xl font-extrabold mb-4 ${theme === "dark" ? "text-white" : "text-black"}`}>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10 text-center"
+        >
+          <h1
+            className={`text-5xl md:text-6xl font-extrabold mb-4 ${
+              theme === "dark" ? "text-white" : "text-black"
+            }`}
+          >
             Our Collection
           </h1>
-          <motion.p key={filteredAndSortedProducts.length} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className={`text-xl ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+          <motion.p
+            key={filteredAndSortedProducts.length}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`text-xl ${
+              theme === "dark" ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
             {filteredAndSortedProducts.length} products
           </motion.p>
         </motion.div>
@@ -247,7 +364,13 @@ export default function ProductListing() {
         {/* Grouped by Type */}
         {Object.entries(groupedProductsByType).map(([type, items]) => (
           <section key={type} className="mb-16">
-            <h2 className={`text-3xl font-bold mb-6 capitalize ${theme === "dark" ? "text-white" : "text-black"}`}>{type}</h2>
+            <h2
+              className={`text-3xl font-bold mb-6 capitalize ${
+                theme === "dark" ? "text-white" : "text-black"
+              }`}
+            >
+              {type}
+            </h2>
             <ProductGrid products={items} viewMode={viewMode} />
           </section>
         ))}
