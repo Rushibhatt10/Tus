@@ -46,9 +46,9 @@ export default function Checkout() {
 
   // Fabric length options based on product type
   const getFabricLengthOptions = (productType) => {
-    if (productType === "SHIRT") return ["1.40 m", "1.60 m", "1.80 m", "2.20 m"];
-    if (productType === "SUIT") return ["1.20 m", "1.30 m", "1.50 m", "2.25 m", "3.25 m"];
-    return ["1.20 m", "1.40 m", "1.60 m", "1.80 m", "2.0 m"]; // Default for PANT
+    if (productType === "SHIRT") return ["1.40 m", "1.60 m", "1.80 m", "2.00 m", "2.20 m", "2.50 m"];
+    if (productType === "SUIT") return ["3.25 m", "3.50 m", "3.75 m", "4.00 m", "4.25 m"];
+    return ["1.20 m", "1.30 m", "1.40 m", "1.50 m", "1.60 m"]; // Default for PANT
   };
 
   // Get price for selected length
