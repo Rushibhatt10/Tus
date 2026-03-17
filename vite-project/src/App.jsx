@@ -29,7 +29,7 @@ function App() {
 
 export default function MainApp() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ThemeProvider>
         <App />
       </ThemeProvider>
