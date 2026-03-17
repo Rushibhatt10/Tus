@@ -275,10 +275,10 @@ const LandingPage = () => {
         <div className="relative z-10 w-full flex flex-col md:flex-row justify-between items-end gap-6 md:gap-12">
           <h1 
             ref={el => el && !titleRefs.current.includes(el) && titleRefs.current.push(el)} 
-            className="text-[18vw] sm:text-[16vw] md:text-[12vw] leading-[0.88] font-serif uppercase tracking-tighter text-white"
+            className="font-serif uppercase tracking-[-0.02em] text-white leading-[0.9] text-[clamp(2.5rem,12vw,8rem)] md:text-[clamp(5.2rem,9.4vw,11rem)] max-w-[12ch]"
           >
             <span className="block">The Art</span>
-            <span className="block whitespace-nowrap">of Clothing</span>
+            <span className="block">of Clothing</span>
           </h1>
           <div className="flex flex-col items-start md:items-end gap-4 md:gap-6 text-white pb-2 md:pb-4 max-w-sm">
             <p ref={el => el && !textRefs.current.includes(el) && textRefs.current.push(el)} className="text-left md:text-right text-base md:text-xl font-light opacity-80 leading-relaxed">
