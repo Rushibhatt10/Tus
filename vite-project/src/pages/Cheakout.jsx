@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { MapPin, ShoppingBag, Lock } from "lucide-react";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, serverTimestamp, setDoc, doc } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, setDoc, doc, getDocs } from "firebase/firestore";
 
 export default function Checkout() {
   const location = useLocation();
@@ -57,6 +57,29 @@ export default function Checkout() {
     return item.sizePricing[length] || item.price;
   };
 
+  // Fetch Saved Address from Account Profile
+  const fetchUserAddress = async (uid) => {
+    try {
+      const snap = await getDocs(collection(db, "users", uid, "addresses"));
+      if (!snap.empty) {
+        // Use the first saved address
+        const savedData = snap.docs[0].data();
+        setName((prev) => prev || savedData.name || "");
+        setMobile((prev) => prev || savedData.mobile || "");
+        setEmail((prev) => prev || savedData.email || "");
+        setAddress((prev) => prev || savedData.line1 || "");
+        setStreet((prev) => prev || savedData.line2 || "");
+        setLandmark((prev) => prev || savedData.landmark || "");
+        setCity((prev) => prev || savedData.city || "");
+        setState((prev) => prev || savedData.state || "");
+        setPincode((prev) => prev || savedData.zip || "");
+        setAddressType((prev) => savedData.type || prev);
+      }
+    } catch (err) {
+      console.error("Failed to fetch address", err);
+    }
+  };
+
   // Auth listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -64,6 +87,11 @@ export default function Checkout() {
         navigate("/login", { replace: true });
       } else {
         setUser(currentUser);
+        // Automatically pre-fill email if not set
+        if (!email) setEmail(currentUser.email || "");
+        if (!name) setName(currentUser.displayName || "");
+        // Fetch saved profile addresses
+        fetchUserAddress(currentUser.uid);
       }
       setLoading(false);
     });
@@ -255,10 +283,10 @@ export default function Checkout() {
 
   return (
     <div
-      className={`min-h-screen px-4 py-10 text-gray-900 dark:text-white bg-white dark:bg-black`}
+      className={`min-h-screen px-4 py-10 transition-colors duration-500 text-[#0c0c0c] dark:text-[#f5f5f0] bg-[#f5f5f0] dark:bg-[#0c0c0c]`}
     >
       <motion.div
-        className="max-w-5xl mx-auto bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl p-8 md:p-12"
+        className="max-w-5xl mx-auto bg-white/50 dark:bg-black/20 backdrop-blur-md border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl p-8 md:p-12"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -301,7 +329,11 @@ export default function Checkout() {
                   placeholder={field.placeholder}
                   value={field.value}
                   onChange={(e) => field.setter(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                  style={{
+                    color: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#f5f5f0' : '#0c0c0c',
+                    backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'transparent' : 'transparent'
+                  }}
+                  className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-transparent p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none dark:!text-white"
                 />
               ))}
 
@@ -311,14 +343,20 @@ export default function Checkout() {
                   placeholder="Town / City"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                  style={{
+                    color: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#f5f5f0' : '#0c0c0c'
+                  }}
+                  className="rounded-xl border border-black/10 dark:border-white/10 bg-transparent p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none dark:!text-white"
                 />
                 <input
                   type="text"
                   placeholder="State"
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                  style={{
+                    color: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#f5f5f0' : '#0c0c0c'
+                  }}
+                  className="rounded-xl border border-black/10 dark:border-white/10 bg-transparent p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none dark:!text-white"
                 />
               </div>
 
@@ -327,7 +365,10 @@ export default function Checkout() {
                 placeholder="Pincode / ZIP Code"
                 value={pincode}
                 onChange={(e) => setPincode(e.target.value)}
-                className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                style={{
+                  color: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#f5f5f0' : '#0c0c0c'
+                }}
+                className="rounded-xl border border-black/10 dark:border-white/10 bg-transparent p-4 text-lg focus:ring-2 focus:ring-gray-500 outline-none dark:!text-white"
               />
 
               <div className="flex gap-4 items-center">
@@ -352,7 +393,7 @@ export default function Checkout() {
           </div>
 
           {/* Right: Order Summary */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl p-6">
+          <div className="bg-transparent rounded-3xl border border-black/10 dark:border-white/10 shadow-xl p-6">
             <h3 className="text-2xl font-semibold flex items-center gap-3 mb-6">
               <ShoppingBag size={22} /> Order Summary
             </h3>
@@ -384,7 +425,11 @@ export default function Checkout() {
                         newLengths[idx] = e.target.value;
                         setSelectedLengths(newLengths);
                       }}
-                      className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
+                      style={{
+                        color: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#f5f5f0' : '#0c0c0c',
+                        backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1f2937' : 'white'
+                      }}
+                      className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:!text-white text-sm"
                     >
                       <option value="">Select Length</option>
                       {getFabricLengthOptions(item.type || "SHIRT").map(length => (
@@ -408,7 +453,11 @@ export default function Checkout() {
                         newQty[idx] = Number(e.target.value);
                         setQuantities(newQty);
                       }}
-                      className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 text-center text-lg dark:bg-gray-800"
+                      style={{
+                        color: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#f5f5f0' : '#0c0c0c',
+                        backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1f2937' : 'white'
+                      }}
+                      className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 text-center text-lg dark:bg-gray-800 dark:!text-white"
                     />
                   </div>
 

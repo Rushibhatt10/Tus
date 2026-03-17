@@ -50,8 +50,20 @@ export default function Cart() {
     }
   };
 
+  // Get best price for an item: prefer saved selectedLength price, otherwise min of sizePricing
+  const getItemPrice = (item) => {
+    if (item.sizePricing) {
+      if (item.selectedLength && item.sizePricing[item.selectedLength]) {
+        return Number(item.sizePricing[item.selectedLength]);
+      }
+      const prices = Object.values(item.sizePricing).filter(p => p).map(Number);
+      if (prices.length > 0) return Math.min(...prices);
+    }
+    return Number(item.price || 0);
+  };
+
   const getTotal = () => {
-    return cartItems.reduce((total, item) => total + Number(item.price || 0), 0);
+    return cartItems.reduce((total, item) => total + getItemPrice(item), 0);
   };
 
   const formatCurrency = (num) => num.toLocaleString("en-IN");
@@ -60,13 +72,13 @@ export default function Cart() {
   const mode = theme || "light";
   const isDark = mode === "dark";
 
-  const bgClass = isDark ? "bg-black text-white" : "bg-white text-black";
+  const bgClass = isDark ? "bg-[#0c0c0c] text-[#f5f5f0]" : "bg-[#f5f5f0] text-[#0c0c0c]";
   const cardClass = isDark
-    ? "bg-neutral-900 border-gray-800 text-white"
-    : "bg-white border-gray-200 text-gray-900";
+    ? "bg-[#121212] border-white/10 text-[#f5f5f0]"
+    : "bg-white border-black/10 text-[#0c0c0c]";
   const buttonClass = isDark
-    ? "px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition"
-    : "px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition";
+    ? "px-4 py-2 bg-[#f5f5f0] text-[#0c0c0c] rounded-lg hover:bg-white transition"
+    : "px-4 py-2 bg-[#0c0c0c] text-[#f5f5f0] rounded-lg hover:bg-black transition";
   const textSecondaryClass = isDark ? "text-gray-400" : "text-gray-500";
 
   const handleCheckout = () => {
@@ -106,12 +118,12 @@ export default function Cart() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-5xl mx-auto text-center mb-10"
+        className="max-w-5xl mx-auto text-center mb-8"
       >
-        <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
+        <h1 className="text-3xl md:text-5xl font-extrabold mb-3">
           Your Cart
         </h1>
-        <p className={`text-lg ${textSecondaryClass}`}>{cartItems.length} item(s)</p>
+        <p className={`text-base md:text-lg ${textSecondaryClass}`}>{cartItems.length} item(s)</p>
       </motion.div>
 
       {/* Cart Items as BOX PREVIEW */}
@@ -133,7 +145,7 @@ export default function Cart() {
               {item.brand || "Brand N/A"}
             </p>
             <p className="font-bold text-lg mb-4">
-              ₹{formatCurrency(Number(item.price || 0))}
+              {getItemPrice(item) > 0 ? `from ₹${formatCurrency(getItemPrice(item))}` : 'Price on selection'}
             </p>
             <button
               onClick={() => removeFromCart(item.id)}
@@ -147,14 +159,14 @@ export default function Cart() {
 
       {/* Total */}
       <div
-        className={`max-w-5xl mx-auto mt-10 p-6 rounded-2xl shadow-lg flex justify-between items-center border ${
-          isDark ? "bg-neutral-900 border-gray-800 text-white" : "bg-white border-gray-200"
+        className={`max-w-5xl mx-auto mt-8 p-5 md:p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 border ${
+          isDark ? "bg-[#121212] border-white/10 text-[#f5f5f0]" : "bg-white border-black/10 text-[#0c0c0c]"
         }`}
       >
-        <p className="text-xl font-bold">
-          Total: ₹{formatCurrency(getTotal())} + TAXES
+        <p className="text-lg md:text-xl font-bold">
+          Total: ₹{formatCurrency(getTotal())}
         </p>
-        <button onClick={handleCheckout} className={buttonClass}>
+        <button onClick={handleCheckout} className={`${buttonClass} w-full sm:w-auto py-3 px-6 text-base font-semibold`}>
           Checkout
         </button>
       </div>

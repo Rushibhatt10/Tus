@@ -80,9 +80,9 @@ function Signup() {
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
         "recaptcha-container",
-        { size: "invisible" },
-        auth
+        { size: "invisible" }
       );
     }
   };
@@ -120,7 +120,7 @@ function Signup() {
 
       setSuccessMsg("Phone verified!");
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/products");
       }, 2000);
     } catch (error) {
       setErrorMsg("Invalid OTP. Please try again.");
@@ -140,51 +140,57 @@ function Signup() {
     : "bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-gray-400";
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${bgClass}`}>
-      <div className={`w-full max-w-md p-8 ${cardClass} backdrop-blur-lg shadow-2xl rounded-2xl space-y-6`}>
+    <div className={`min-h-screen flex items-center justify-center py-12 px-4 ${bgClass}`}>
+      <div className={`w-full max-w-md p-8 md:p-10 ${cardClass} backdrop-blur-lg shadow-2xl rounded-2xl space-y-8`}>
         <h2 className="text-4xl font-extrabold text-center">
           Create Your Account
         </h2>
 
         {/* Email Signup */}
-        <form onSubmit={handleEmailSignup} className="space-y-4">
-          <div className="relative">
-            <ShieldCheck className={`absolute left-3 top-3 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
-            />
+        <form onSubmit={handleEmailSignup} className="space-y-5">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs uppercase tracking-widest font-semibold opacity-70 ml-1">Full Name</label>
+            <div className="relative">
+              <ShieldCheck className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className={`w-full pl-12 pr-4 py-4 rounded-xl border ${inputClass} focus:outline-none focus:ring-2`}
+              />
+            </div>
           </div>
-          <div className="relative">
-            <Mail className={`absolute left-3 top-3 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
-            />
+          <div className="flex flex-col gap-2 mt-5">
+            <label className="text-xs uppercase tracking-widest font-semibold opacity-70 ml-1">Email Address</label>
+            <div className="relative">
+              <Mail className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className={`w-full pl-12 pr-4 py-4 rounded-xl border ${inputClass} focus:outline-none focus:ring-2`}
+              />
+            </div>
           </div>
-          <div className="relative">
-            <Lock className={`absolute left-3 top-3 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
-            />
+          <div className="flex flex-col gap-2 mt-5">
+            <label className="text-xs uppercase tracking-widest font-semibold opacity-70 ml-1">Password</label>
+            <div className="relative">
+              <Lock className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className={`w-full pl-12 pr-4 py-4 rounded-xl border ${inputClass} focus:outline-none focus:ring-2`}
+              />
+            </div>
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-black text-white hover:bg-gray-800 font-semibold rounded-lg transition-transform hover:scale-105 disabled:opacity-50"
+            className="w-full mt-6 py-4 bg-black text-white hover:bg-gray-800 font-semibold text-lg rounded-xl transition-transform hover:scale-105 disabled:opacity-50"
           >
             {loading ? "Signing up..." : "Sign Up with Email"}
           </button>
@@ -196,7 +202,7 @@ function Signup() {
         <button
           onClick={handleGoogleSignup}
           disabled={loading}
-          className={`w-full flex items-center justify-center gap-3 py-3 border rounded-lg font-medium ${isDark ? "text-white border-gray-700 bg-gray-800 hover:bg-gray-700" : "text-black border-gray-300 bg-white hover:bg-gray-50"} transition-all`}
+          className={`w-full flex items-center justify-center gap-3 py-4 border rounded-xl font-medium mt-4 ${isDark ? "text-white border-gray-700 bg-gray-800 hover:bg-gray-700" : "text-black border-gray-300 bg-white hover:bg-gray-50"} transition-all`}
         >
           <img
             src="https://www.svgrepo.com/show/355037/google.svg"
@@ -207,33 +213,37 @@ function Signup() {
         </button>
 
         {/* Phone Signup */}
-        <div className="space-y-4">
-          <div className="relative">
-            <Phone className={`absolute left-3 top-3 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
-            <input
-              type="tel"
-              placeholder="+91"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={`w-full pl-10 px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
-            />
+        <div className="space-y-5 mt-6">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs uppercase tracking-widest font-semibold opacity-70 ml-1">Phone Number</label>
+            <div className="relative">
+              <Phone className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${isDark ? "text-gray-300" : "text-gray-500"}`} />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={`w-full pl-12 pr-4 py-4 rounded-xl border ${inputClass} focus:outline-none focus:ring-2`}
+              />
+            </div>
           </div>
 
           {otpSent && (
-            <input
-              type="text"
-              placeholder="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${inputClass} focus:outline-none`}
-            />
+            <div className="flex flex-col gap-2 mt-4">
+              <label className="text-xs uppercase tracking-widest font-semibold opacity-70 ml-1">One Time Password</label>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className={`w-full px-4 py-4 rounded-xl border ${inputClass} focus:outline-none focus:ring-2`}
+              />
+            </div>
           )}
 
           {!otpSent ? (
             <button
               onClick={handleSendOtp}
               disabled={loading}
-              className={`w-full py-3 border rounded-lg font-semibold ${isDark ? "border-gray-700 text-white hover:bg-gray-800" : "border-gray-300 text-black hover:bg-gray-100"} transition-all`}
+              className={`w-full py-4 border rounded-xl font-semibold mt-4 ${isDark ? "border-gray-700 text-white hover:bg-gray-800" : "border-gray-300 text-black hover:bg-gray-100"} transition-all`}
             >
               Send OTP
             </button>
@@ -241,7 +251,7 @@ function Signup() {
             <button
               onClick={handleVerifyOtp}
               disabled={loading}
-              className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-all"
+              className="w-full py-4 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-all mt-4"
             >
               Verify OTP
             </button>

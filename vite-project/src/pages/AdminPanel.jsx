@@ -1,33 +1,45 @@
 import React, { useEffect, useState, useMemo, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import {
   collection,
   addDoc,
-  getDocs,
+  getDoc,
   deleteDoc,
   updateDoc,
   doc,
   onSnapshot,
 } from "firebase/firestore";
-// Using a simple name/password check for admin access (Hardik / hardik@1234)
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
 import axios from "axios";
 import { ThemeContext } from "../context/ThemeContext";
-import { Sun, Moon } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Menu,
+  X,
+  LayoutDashboard,
+  Shirt,
+  Package,
+  Users,
+  Tags,
+  LogOut,
+} from "lucide-react";
 
 const AdminPanel = () => {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // States
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
 
-  // Auth states (admin accessed via name + password)
-  const [adminName, setAdminName] = useState("");
+  // Auth states
+  const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
@@ -49,6 +61,7 @@ const AdminPanel = () => {
   const [availability, setAvailability] = useState("In Stock");
   const [discount, setDiscount] = useState("");
   const [collectionTag, setCollectionTag] = useState("");
+  const [mainImage, setMainImage] = useState(null);
   const [images, setImages] = useState([]);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [type, setType] = useState("SHIRT");
@@ -73,25 +86,67 @@ const AdminPanel = () => {
   const [productToDelete, setProductToDelete] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  const imgbbApiKey = "52848fd9eb0f7acc4f4fa3c5cd7ba2de";
+  const imgbbApiKey = import.meta.env.VITE_IMGBB_API_KEY;
+  const allowedAdminEmails = useMemo(
+    () =>
+      (import.meta.env.VITE_ADMIN_EMAILS || "")
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    []
+  );
 
-  // NOTE: Removed Firebase auth listener. Admin login is handled locally by matching
-  // the provided name & password against hardcoded credentials below.
+  const isUserAdmin = async (currentUser) => {
+    if (!currentUser) return false;
+    const email = (currentUser.email || "").toLowerCase();
+    if (allowedAdminEmails.includes(email)) return true;
+
+    try {
+      const profileRef = doc(db, "users", currentUser.uid);
+      const profileSnap = await getDoc(profileRef);
+      if (!profileSnap.exists()) return false;
+      const profile = profileSnap.data();
+      return profile?.isAdmin === true || profile?.role === "admin";
+    } catch (error) {
+      console.error("Admin role check failed:", error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const hasAdminAccess = await isUserAdmin(currentUser);
+      if (hasAdminAccess) {
+        setUser(currentUser);
+        setAuthError("");
+      } else {
+        await firebaseSignOut(auth);
+        setUser(null);
+        setAuthError("This account is not allowed to access admin panel.");
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Real-time data fetching
   useEffect(() => {
     if (user) {
-      // Products
       const productsUnsub = onSnapshot(collection(db, "products"), (snapshot) => {
         setProducts(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       });
 
-      // Users
       const usersUnsub = onSnapshot(collection(db, "users"), (snapshot) => {
         setUsers(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       });
 
-      // Orders
       const ordersUnsub = onSnapshot(collection(db, "orders"), (snapshot) => {
         setOrders(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       });
@@ -110,50 +165,73 @@ const AdminPanel = () => {
     setIsSuitAsPant(false);
   }, [type]);
 
-  // Auth handlers: simple local check
-  const handleLogin = (e) => {
+  // Auth handlers
+  const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError("");
-    // Hardcoded credentials
-    const ADMIN_NAME = "Hardik";
-    const ADMIN_PASSWORD = "hardik@1234";
+    setLoading(true);
 
-    if (adminName === ADMIN_NAME && adminPassword === ADMIN_PASSWORD) {
-      setUser({ name: ADMIN_NAME, isAdmin: true });
-      setToast({ show: true, message: "✅ Login successful!", type: "success" });
-      // clear fields
-      setAdminName("");
+    try {
+      const result = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      const hasAdminAccess = await isUserAdmin(result.user);
+
+      if (!hasAdminAccess) {
+        await firebaseSignOut(auth);
+        setAuthError("This account is not allowed to access admin panel.");
+        setToast({ show: true, message: "Access denied", type: "error" });
+        return;
+      }
+
+      setUser(result.user);
+      setToast({ show: true, message: "Login successful!", type: "success" });
+      setAdminEmail("");
       setAdminPassword("");
-    } else {
-      setAuthError("Invalid name or password");
-      setToast({ show: true, message: "❌ Login failed", type: "error" });
+    } catch (error) {
+      setAuthError("Invalid admin email or password");
+      setToast({ show: true, message: "Login failed", type: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await firebaseSignOut(auth);
     setUser(null);
     setToast({ show: true, message: "Logged out successfully", type: "success" });
   };
 
   // Image Upload
-  const handleImageUpload = async () => {
-    setSubmitLoading(true);
-    const urls = [];
-    for (let i = 0; i < images.length; i++) {
-      const formData = new FormData();
-      formData.append("image", images[i]);
-      try {
-        const response = await axios.post(
-          `https://api.imgbb.com/1/upload?key=${imgbbApiKey}`,
-          formData
-        );
-        urls.push(response.data.data.url);
-      } catch (error) {
-        console.error("Image upload failed:", error);
-      }
+  const uploadSingleImage = async (file) => {
+    if (!file) return null;
+    const formData = new FormData();
+    formData.append("image", file);
+    try {
+      const response = await axios.post(
+        `https://api.imgbb.com/1/upload?key=${imgbbApiKey}`,
+        formData
+      );
+      return response.data?.data?.url || null;
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      return null;
     }
-    setSubmitLoading(false);
-    return urls;
+  };
+
+  const handleImageUpload = async () => {
+    const heroUrl = await uploadSingleImage(mainImage);
+    const galleryUrls = [];
+
+    for (let i = 0; i < images.length; i++) {
+      const url = await uploadSingleImage(images[i]);
+      if (url) galleryUrls.push(url);
+    }
+
+    const finalImages = heroUrl ? [heroUrl, ...galleryUrls] : galleryUrls;
+    return { heroUrl, galleryUrls, finalImages };
+  };
+
+  const handleMainImageChange = (e) => {
+    setMainImage(e.target.files?.[0] || null);
   };
 
   const handleFileChange = (e) => {
@@ -162,8 +240,24 @@ const AdminPanel = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!mainImage) {
+      setToast({ show: true, message: "Please upload a main hero image", type: "error" });
+      return;
+    }
+    if (!imgbbApiKey) {
+      setToast({ show: true, message: "Image upload key missing. Set VITE_IMGBB_API_KEY", type: "error" });
+      return;
+    }
+
     const finalMaterial = type === "SUIT" ? "PANTS" : material;
-    const uploadedUrls = await handleImageUpload();
+    setSubmitLoading(true);
+    const { heroUrl, galleryUrls, finalImages } = await handleImageUpload();
+    if (!heroUrl) {
+      setSubmitLoading(false);
+      setToast({ show: true, message: "Main hero image upload failed. Try again.", type: "error" });
+      return;
+    }
+    setSubmitLoading(false);
 
     await addDoc(collection(db, "products"), {
       name: productName,
@@ -182,7 +276,9 @@ const AdminPanel = () => {
       stretch,
       availability,
       discount,
-      images: uploadedUrls,
+      images: finalImages,
+      heroImage: heroUrl || "",
+      galleryImages: galleryUrls,
       collectionTag,
       type,
       sizePricing: sizePricing[type],
@@ -197,7 +293,7 @@ const AdminPanel = () => {
     setProductName(""); setDescription(""); setPrice(""); setBrand(""); setColor("");
     setFabricType(""); setPattern(""); setMaterial(""); setCareInstructions(""); setOccasion("");
     setLength(""); setWidth(""); setWeight(""); setStretch(""); setAvailability("In Stock");
-    setDiscount(""); setImages([]); setCollectionTag(""); setType("SHIRT");
+    setDiscount(""); setMainImage(null); setImages([]); setCollectionTag(""); setType("SHIRT");
     setIsPantAsSuit(false);
     setIsSuitAsPant(false);
     setSizePricing({
@@ -256,6 +352,28 @@ const AdminPanel = () => {
     return groups;
   }, [products]);
 
+  const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "products", label: "Products", icon: Shirt },
+    { id: "orders", label: "Orders", icon: Package },
+    { id: "users", label: "Users", icon: Users },
+    { id: "listing", label: "Collections", icon: Tags },
+  ];
+
+  const currentTab = tabs.find((tab) => tab.id === activeTab);
+  const pageTheme = theme === "dark" ? "bg-[#0c0c0c] text-[#f5f5f0]" : "bg-[#f5f5f0] text-[#0c0c0c]";
+  const surfaceTheme =
+    theme === "dark"
+      ? "bg-[#141414]/85 border-white/10"
+      : "bg-white/80 border-black/10";
+  const sidebarHoverTheme = theme === "dark" ? "hover:bg-white/10" : "hover:bg-black/5";
+  const authInputTheme =
+    theme === "dark"
+      ? "border-white/15 bg-[#121212]/70 text-[#f5f5f0] focus:ring-white/30"
+      : "border-black/10 bg-white/90 text-[#0c0c0c] focus:ring-black/20";
+  const fieldStyle = theme === "dark" ? { color: "#f5f5f0", backgroundColor: "#374151" } : { color: "#0c0c0c", backgroundColor: "white" };
+  const sizeFieldStyle = theme === "dark" ? { color: "#f5f5f0", backgroundColor: "#1f2937" } : { color: "#0c0c0c", backgroundColor: "white" };
+
   // Show Toast
   useEffect(() => {
     if (toast.show) {
@@ -264,24 +382,31 @@ const AdminPanel = () => {
     }
   }, [toast]);
 
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setIsMobileSidebarOpen(false);
+  };
+
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-black" : "bg-white"}`}>
-        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black dark:border-white"></div>
+      <div className={`min-h-screen flex items-center justify-center ${pageTheme}`}>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-current"></div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className={`min-h-screen flex items-center justify-center p-6 ${theme === "dark" ? "bg-black" : "bg-white"}`}>
+      <div className={`min-h-screen flex items-center justify-center p-4 sm:p-6 ${pageTheme}`}>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={`w-full max-w-md ${theme === "dark" ? "bg-gray-800" : "bg-white"} rounded-3xl shadow-2xl p-10 border ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}
+          className={`w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-10 border backdrop-blur-xl ${surfaceTheme}`}
         >
-          <h2 className={`text-3xl font-extrabold text-center mb-2 ${theme === "dark" ? "text-white" : "text-black"}`}>Admin Login</h2>
-          <p className={`text-center mb-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>Manage your store efficiently</p>
+          <h2 className="text-3xl font-extrabold text-center mb-2">Admin Login</h2>
+          <p className={`text-center mb-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+            Manage your store efficiently
+          </p>
           <form onSubmit={handleLogin} className="space-y-6">
             {authError && (
               <div className="bg-red-500/20 border border-red-500 text-red-600 px-4 py-3 rounded-xl">
@@ -289,11 +414,11 @@ const AdminPanel = () => {
               </div>
             )}
             <input
-              type="text"
-              value={adminName}
-              onChange={(e) => setAdminName(e.target.value)}
-              placeholder="Admin Name"
-              className="w-full p-4 border rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400 border-gray-300 bg-white/90 backdrop-blur-sm text-black"
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="Admin Email"
+              className={`w-full p-4 border rounded-xl focus:outline-none focus:ring-2 ${authInputTheme}`}
               required
             />
             <input
@@ -301,10 +426,17 @@ const AdminPanel = () => {
               value={adminPassword}
               onChange={(e) => setAdminPassword(e.target.value)}
               placeholder="Password"
-              className="w-full p-4 border rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400 border-gray-300 bg-white/90 backdrop-blur-sm text-black"
+              className={`w-full p-4 border rounded-xl focus:outline-none focus:ring-2 ${authInputTheme}`}
               required
             />
-            <button type="submit" className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-gray-100 transition shadow-lg">
+            <button
+              type="submit"
+              className={`w-full py-4 font-bold rounded-xl transition shadow-lg ${
+                theme === "dark"
+                  ? "bg-[#f5f5f0] text-[#0c0c0c] hover:bg-white"
+                  : "bg-[#0c0c0c] text-[#f5f5f0] hover:bg-black/90"
+              }`}
+            >
               Login
             </button>
           </form>
@@ -314,7 +446,7 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className={`min-h-screen ${theme === "dark" ? "bg-black" : "bg-white"}`}>
+    <div className={`min-h-screen transition-colors duration-500 ${pageTheme}`}>
       {/* Toast Notification */}
       <AnimatePresence>
         {toast.show && (
@@ -364,59 +496,168 @@ const AdminPanel = () => {
         )}
       </AnimatePresence>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-r border-gray-200 dark:border-gray-700 min-h-screen sticky top-0">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-8">Admin Panel</h1>
-            <nav className="space-y-2">
-              {[
-                { id: "dashboard", label: "📊 Dashboard", icon: "📊" },
-                { id: "products", label: "👕 Products", icon: "👕" },
-                { id: "orders", label: "📦 Orders", icon: "📦" },
-                { id: "users", label: "👥 Users", icon: "👥" },
-                { id: "listing", label: "🏷️ Collections", icon: "🏷️" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full text-left px-4 py-3 rounded-xl transition ${
-                    activeTab === tab.id
-                      ? "bg-black text-white dark:bg-white dark:text-black"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <>
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              aria-label="Close navigation"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 24, stiffness: 230 }}
+              className={`fixed top-0 left-0 h-full w-72 border-r backdrop-blur-xl z-50 md:hidden ${surfaceTheme}`}
+            >
+              <div className="p-5 space-y-5">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-bold tracking-wide">Admin Panel</h1>
+                  <button
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                    className={`p-2 rounded-lg ${sidebarHoverTheme}`}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <nav className="space-y-2">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => handleTabChange(tab.id)}
+                        className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl transition ${
+                          isActive
+                            ? "bg-black text-white dark:bg-white dark:text-black"
+                            : sidebarHoverTheme
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </nav>
+                <div className={`border-t pt-4 space-y-2 ${theme === "dark" ? "border-white/10" : "border-black/10"}`}>
+                  <button
+                    onClick={toggleTheme}
+                    className={`w-full text-left px-4 py-3 rounded-xl ${sidebarHoverTheme} flex items-center gap-3`}
+                  >
+                    {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 flex items-center gap-3"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="flex min-h-screen">
+        {/* Desktop Sidebar */}
+        <aside className={`hidden md:block w-72 border-r backdrop-blur-xl sticky top-0 h-screen ${surfaceTheme}`}>
+          <div className="p-6 h-full flex flex-col">
+            <h1 className="text-2xl font-bold mb-8 tracking-wide">Admin Panel</h1>
+            <nav className="space-y-2 flex-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl transition ${
+                      isActive
+                        ? "bg-black text-white dark:bg-white dark:text-black"
+                        : sidebarHoverTheme
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="mt-6 space-y-2">
               <button
                 onClick={toggleTheme}
-                className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 mt-8 flex items-center gap-3"
+                className={`w-full text-left px-4 py-3 rounded-xl ${sidebarHoverTheme} flex items-center gap-3`}
               >
                 {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                {theme === "dark" ? " ☀️ Light Mode" : " 🌙 Dark Mode"}
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
               </button>
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-3 rounded-xl hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400"
+                className="w-full text-left px-4 py-3 rounded-xl hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 flex items-center gap-3"
               >
-                🚪 Logout
+                <LogOut className="w-5 h-5" />
+                Logout
               </button>
-            </nav>
+            </div>
           </div>
-        </div>
+        </aside>
 
         {/* Main Content */}
-        <div className="flex-1 p-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-7xl mx-auto"
+        <div className="flex-1 min-w-0">
+          <header
+            className={`sticky top-0 z-30 border-b backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-4 ${
+              theme === "dark"
+                ? "bg-[#0c0c0c]/85 border-white/10"
+                : "bg-[#f5f5f0]/85 border-black/10"
+            }`}
           >
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  className={`md:hidden p-2 rounded-lg ${sidebarHoverTheme}`}
+                  aria-label="Open navigation"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                <div className="min-w-0">
+                  <p className={`text-xs uppercase tracking-[0.22em] ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                    Admin Workspace
+                  </p>
+                  <h2 className="font-semibold text-base sm:text-lg truncate">{currentTab?.label || "Dashboard"}</h2>
+                </div>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className={`md:hidden p-2 rounded-lg border ${
+                  theme === "dark"
+                    ? "border-white/20 hover:bg-white/10"
+                    : "border-black/10 hover:bg-black/5"
+                }`}
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            </div>
+          </header>
+
+          <div className="p-4 sm:p-6 lg:p-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-7xl mx-auto"
+            >
             {/* Dashboard Tab */}
             {activeTab === "dashboard" && (
               <div className="space-y-8">
-                <h2 className="text-4xl font-extrabold mb-8">📊 Dashboard</h2>
+                <h2 className="text-3xl sm:text-4xl font-extrabold mb-8">Dashboard</h2>
                 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -431,7 +672,7 @@ const AdminPanel = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1 }}
-                      className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+                      className={`backdrop-blur-xl rounded-2xl p-6 shadow-lg border ${surfaceTheme}`}
                     >
                       <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center mb-4`}>
                         <span className="text-2xl">📊</span>
@@ -443,17 +684,17 @@ const AdminPanel = () => {
                 </div>
 
                 {/* Additional Stats */}
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xl font-bold mb-4">📅 This Month Orders</h3>
+                <div className={`backdrop-blur-xl rounded-2xl p-6 shadow-lg border ${surfaceTheme}`}>
+                  <h3 className="text-xl font-bold mb-4">This Month Orders</h3>
                   <p className="text-4xl font-bold text-blue-600">{dashboardStats.thisMonthOrders}</p>
                 </div>
 
                 {/* Top Products */}
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-2xl font-bold mb-4">🔥 Top Products</h3>
+                <div className={`backdrop-blur-xl rounded-2xl p-6 shadow-lg border ${surfaceTheme}`}>
+                  <h3 className="text-2xl font-bold mb-4">Top Products</h3>
                   <div className="space-y-3">
                     {dashboardStats.topProducts.map((product, idx) => (
-                      <div key={product.id} className="flex items-center gap-4 p-3 rounded-xl bg-gray-100 dark:bg-gray-700">
+                      <div key={product.id} className="flex items-center gap-4 p-3 rounded-xl bg-gray-100 dark:bg-gray-700 flex-wrap sm:flex-nowrap">
                         <span className="text-2xl">{idx + 1}</span>
                         <div className="flex-1">
                           <p className="font-semibold">{product.name}</p>
@@ -470,20 +711,21 @@ const AdminPanel = () => {
             {/* Products Tab */}
             {activeTab === "products" && (
               <div className="space-y-8">
-                <h2 className="text-4xl font-extrabold mb-6">Manage Products</h2>
+                <h2 className="text-3xl sm:text-4xl font-extrabold mb-6">Manage Products</h2>
                 
                 {/* Product Form */}
-                <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg">
+                <form onSubmit={handleSubmit} className={`backdrop-blur-xl rounded-2xl p-5 sm:p-8 border shadow-lg ${surfaceTheme}`}>
                   <h3 className="text-2xl font-bold mb-6">Add New Product</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Type Selection */}
-                    <div className="col-span-2">
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-semibold mb-2">Product Type *</label>
                       <select
                         value={type}
                         onChange={(e) => setType(e.target.value)}
-                        className="w-full p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                        style={fieldStyle}
+                        className="w-full p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:!text-white"
                       >
                         <option value="SHIRT">👔 SHIRT</option>
                         <option value="SUIT">🧥 SUIT</option>
@@ -492,12 +734,12 @@ const AdminPanel = () => {
                     </div>
 
                     {/* Size Pricing Options */}
-                    <div className="col-span-2 bg-gray-50 dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="md:col-span-2 bg-gray-50 dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                       <h4 className="font-bold mb-3">📏 Size Pricing Options</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {sizeOptions[type].map(size => (
-                          <div key={size} className="flex items-center gap-2">
-                            <label className="w-24 text-sm">{size}:</label>
+                          <div key={size} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <label className="text-sm sm:w-24">{size}:</label>
                             <input
                               type="number"
                               placeholder="₹"
@@ -507,7 +749,8 @@ const AdminPanel = () => {
                                 newPricing[type][size] = e.target.value;
                                 setSizePricing(newPricing);
                               }}
-                              className="flex-1 p-2 border rounded-lg bg-white dark:bg-gray-800"
+                              style={sizeFieldStyle}
+                              className="flex-1 p-2 border rounded-lg bg-white dark:bg-gray-800 dark:!text-white"
                             />
                           </div>
                         ))}
@@ -516,7 +759,7 @@ const AdminPanel = () => {
 
                     {/* Pant as Suit Toggle */}
                     {type === "PANT" && (
-                      <div className="col-span-2 flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
+                      <div className="md:col-span-2 flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
                         <label className="font-semibold">This Pant is same as Suit:</label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
@@ -532,7 +775,7 @@ const AdminPanel = () => {
 
                     {/* Suit as Pant Toggle */}
                     {type === "SUIT" && (
-                      <div className="col-span-2 flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                      <div className="md:col-span-2 flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                         <label className="font-semibold">This Suit also shows in PANTS:</label>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
@@ -547,19 +790,19 @@ const AdminPanel = () => {
                     )}
 
                     {/* Form Fields */}
-                    <input type="text" placeholder="Product Name *" value={productName} onChange={(e) => setProductName(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" required />
-                    <input type="text" placeholder="Brand" value={brand} onChange={(e) => setBrand(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" />
-                    <input type="number" placeholder="Price (₹) *" value={price} onChange={(e) => setPrice(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" required />
-                    <input type="text" placeholder="Color" value={color} onChange={(e) => setColor(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" />
-                    <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 col-span-2" rows={3}></textarea>
-                    <input type="text" placeholder="Fabric Type" value={fabricType} onChange={(e) => setFabricType(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" />
-                    <input type="text" placeholder="Pattern" value={pattern} onChange={(e) => setPattern(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" />
-                    <input type="text" placeholder="Material" value={material} onChange={(e) => setMaterial(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" />
-                    <input type="text" placeholder="Occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" />
-                    <input type="number" placeholder="Discount %" value={discount} onChange={(e) => setDiscount(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" />
+                    <input type="text" placeholder="Product Name *" value={productName} onChange={(e) => setProductName(e.target.value)} style={fieldStyle} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:!text-white" required />
+                    <input type="text" placeholder="Brand" value={brand} onChange={(e) => setBrand(e.target.value)} style={fieldStyle} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:!text-white" />
+                    <input type="number" placeholder="Price (₹) *" value={price} onChange={(e) => setPrice(e.target.value)} style={fieldStyle} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:!text-white" required />
+                    <input type="text" placeholder="Color" value={color} onChange={(e) => setColor(e.target.value)} style={fieldStyle} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:!text-white" />
+                    <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} style={fieldStyle} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 md:col-span-2 dark:!text-white" rows={3}></textarea>
+                    <input type="text" placeholder="Fabric Type" value={fabricType} onChange={(e) => setFabricType(e.target.value)} style={fieldStyle} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:!text-white" />
+                    <input type="text" placeholder="Pattern" value={pattern} onChange={(e) => setPattern(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:text-white" />
+                    <input type="text" placeholder="Material" value={material} onChange={(e) => setMaterial(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:text-white" />
+                    <input type="text" placeholder="Occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:text-white" />
+                    <input type="number" placeholder="Discount %" value={discount} onChange={(e) => setDiscount(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:text-white" />
 
                     {/* Collection Tag */}
-                    <select value={collectionTag} onChange={(e) => setCollectionTag(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 col-span-2">
+                    <select value={collectionTag} onChange={(e) => setCollectionTag(e.target.value)} className="p-4 border rounded-xl bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 md:col-span-2 dark:text-white">
                       <option value="">Select Collection</option>
                       <option value="Trending">Trending</option>
                       <option value="The Trends">The Trends</option>
@@ -568,9 +811,38 @@ const AdminPanel = () => {
                       <option value="Supa Suits">Supa Suits</option>
                       <option value="Simp Shirting">Simp Shirting</option>
                     </select>
+                    {/* Main Hero Image */}
+                    <div className="md:col-span-2">
+                      <p className="text-sm font-semibold mb-2">Main Product Image (Hero) *</p>
+                      <input
+                        id="mainImageUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleMainImageChange}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="mainImageUpload"
+                        className="cursor-pointer block w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl text-center font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition border border-gray-300 dark:border-gray-600"
+                      >
+                        Upload Main Hero Image
+                      </label>
+                      {mainImage && (
+                        <div className="mt-4">
+                          <div className="w-full max-w-sm rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">
+                            <img
+                              src={URL.createObjectURL(mainImage)}
+                              alt="Main product"
+                              className="w-full h-56 object-cover"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-                    {/* File Upload */}
-                    <div className="col-span-2">
+                    {/* Additional Gallery Images */}
+                    <div className="md:col-span-2">
+                      <p className="text-sm font-semibold mb-2">Additional Gallery Images</p>
                       <input
                         id="imageUpload"
                         type="file"
@@ -583,7 +855,7 @@ const AdminPanel = () => {
                         htmlFor="imageUpload"
                         className="cursor-pointer block w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl text-center font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition border border-gray-300 dark:border-gray-600"
                       >
-                        📷 Upload Images
+                        Upload More Product Photos
                       </label>
                       <div className="flex gap-4 flex-wrap mt-4">
                         {images.map((file, i) => (
@@ -594,11 +866,37 @@ const AdminPanel = () => {
                       </div>
                     </div>
 
+                    {/* Image Order Preview */}
+                    {(mainImage || images.length > 0) && (
+                      <div className="md:col-span-2">
+                        <p className="text-sm font-semibold mb-2">Display Order Preview (Hero first)</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {mainImage && (
+                            <div className="relative col-span-2 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">
+                              <img
+                                src={URL.createObjectURL(mainImage)}
+                                alt="Hero preview"
+                                className="w-full h-40 sm:h-48 object-cover"
+                              />
+                              <span className="absolute top-2 left-2 text-xs font-semibold px-2 py-1 rounded bg-black text-white">
+                                HERO
+                              </span>
+                            </div>
+                          )}
+                          {images.map((file, i) => (
+                            <div key={`grid-${i}`} className="rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">
+                              <img src={URL.createObjectURL(file)} alt={`Gallery ${i + 1}`} className="w-full h-28 object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Submit Button */}
                     <button
                       type="submit"
                       disabled={submitLoading}
-                      className="col-span-2 py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition disabled:opacity-50"
+                      className="md:col-span-2 py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition disabled:opacity-50"
                     >
                       {submitLoading ? "⏳ Uploading..." : "✅ Add Product"}
                     </button>
@@ -606,10 +904,10 @@ const AdminPanel = () => {
                 </form>
 
                 {/* Products List */}
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+                <div className={`backdrop-blur-xl rounded-2xl border shadow-lg overflow-hidden ${surfaceTheme}`}>
                   <h3 className="text-2xl font-bold p-6 border-b border-gray-200 dark:border-gray-700">Products List</h3>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[760px]">
                       <thead className="bg-gray-100 dark:bg-gray-700">
                         <tr>
                           <th className="p-4 text-left">Name</th>
@@ -631,7 +929,7 @@ const AdminPanel = () => {
                             </td>
                             <td className="p-4">{p.type}</td>
                             <td className="p-4">
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 flex-wrap">
                                 <button
                                   onClick={() => toggleAvailability(p.id, p.availability)}
                                   className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm font-semibold"
@@ -658,14 +956,14 @@ const AdminPanel = () => {
             {/* Orders Tab */}
             {activeTab === "orders" && (
               <div className="space-y-6">
-                <h2 className="text-4xl font-extrabold mb-6">📦 Orders Management</h2>
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+                <h2 className="text-3xl sm:text-4xl font-extrabold mb-6">Orders Management</h2>
+                <div className={`backdrop-blur-xl rounded-2xl border shadow-lg overflow-hidden ${surfaceTheme}`}>
                   <h3 className="text-2xl font-bold p-6 border-b border-gray-200 dark:border-gray-700">All Orders</h3>
                   <div className="overflow-x-auto">
                     <div className="p-6 space-y-4">
                       {orders.map((o) => (
                         <div key={o.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:shadow-lg transition">
-                          <div className="flex justify-between items-start mb-4">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
                             <div>
                               <h4 className="font-bold text-lg">Order #{o.id.substring(0, 12)}...</h4>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -700,14 +998,14 @@ const AdminPanel = () => {
                             <h5 className="font-semibold mb-2">Order Items</h5>
                             <div className="space-y-2">
                               {o.items?.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                                <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                                   <div className="flex-1">
                                     <p className="font-medium">{item.name}</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">
                                       Length: {item.selectedLength || "Standard"} | Qty: {item.quantity}
                                     </p>
                                   </div>
-                                  <div className="text-right">
+                                  <div className="text-left sm:text-right">
                                     <p className="font-bold">₹{(item.subtotal || 0).toFixed(2)}</p>
                                     {item.discount > 0 && (
                                       <p className="text-xs text-green-600">Discount: -₹{item.discount.toFixed(2)}</p>
@@ -754,11 +1052,11 @@ const AdminPanel = () => {
             {/* Users Tab */}
             {activeTab === "users" && (
               <div className="space-y-6">
-                <h2 className="text-4xl font-extrabold mb-6">👥 Users Management</h2>
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+                <h2 className="text-3xl sm:text-4xl font-extrabold mb-6">Users Management</h2>
+                <div className={`backdrop-blur-xl rounded-2xl border shadow-lg overflow-hidden ${surfaceTheme}`}>
                   <h3 className="text-2xl font-bold p-6 border-b border-gray-200 dark:border-gray-700">All Users</h3>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[700px]">
                       <thead className="bg-gray-100 dark:bg-gray-700">
                         <tr>
                           <th className="p-4 text-left">Name</th>
@@ -784,9 +1082,9 @@ const AdminPanel = () => {
             {/* Collections Listing Tab */}
             {activeTab === "listing" && (
               <div className="space-y-6">
-                <h2 className="text-4xl font-extrabold mb-6">🏷️ Collections Preview</h2>
+                <h2 className="text-3xl sm:text-4xl font-extrabold mb-6">Collections Preview</h2>
                 {Object.keys(groupedProducts).map((section) => (
-                  <div key={section} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+                  <div key={section} className={`backdrop-blur-xl rounded-2xl p-6 border shadow-lg ${surfaceTheme}`}>
                     <h3 className="text-2xl font-bold mb-6">{section}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                       {groupedProducts[section].map((p) => (
@@ -809,7 +1107,9 @@ const AdminPanel = () => {
         </div>
       </div>
     </div>
+    </div>
   );
 };
 
 export default AdminPanel;
+

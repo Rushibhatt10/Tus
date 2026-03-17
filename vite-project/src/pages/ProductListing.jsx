@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Sun, Moon, Search, User, ShoppingBag, Menu, X } from "lucide-react";
+import { Sun, Moon, Search, User, ShoppingBag } from "lucide-react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { ThemeContext } from "../context/ThemeContext";
@@ -28,7 +28,6 @@ export default function ProductListing() {
   const [sortBy, setSortBy] = useState("relevance");
   const [viewMode, setViewMode] = useState("grid");
   const { theme, toggleTheme } = useContext(ThemeContext);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Update selected type when URL changes
   useEffect(() => {
@@ -173,26 +172,27 @@ export default function ProductListing() {
 
     return (
       <motion.div
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.02 }}
         layout
-        className={`border ${cardBg} rounded-2xl shadow-lg flex flex-col items-center justify-between cursor-pointer transition p-4 w-full max-w-xs h-[400px] mx-auto`}
+        className={`border ${cardBg} rounded-2xl shadow-lg flex flex-col cursor-pointer transition p-4 w-full`}
         onClick={() =>
           navigate(`/products/${product.id}`, { state: { product } })
         }
       >
         <div
-          className={`w-full h-44 flex items-center justify-center overflow-hidden rounded-xl mb-3 ${
+          className={`w-full h-52 sm:h-44 flex items-center justify-center overflow-hidden rounded-xl mb-3 ${
             theme === "dark" ? "bg-black" : "bg-gray-50"
           }`}
         >
           <img
             src={imageUrl}
             alt={product.name}
+            loading="lazy"
             className="object-cover w-full h-full rounded-xl"
           />
         </div>
         <div className="w-full flex-1 flex flex-col justify-between">
-          <h2 className={`font-semibold text-lg truncate mb-1 ${textColor}`}>
+          <h2 className={`font-semibold text-base sm:text-lg truncate mb-1 ${textColor}`}>
             {product.name}
           </h2>
           <p
@@ -202,21 +202,36 @@ export default function ProductListing() {
           >
             {product.brand} · {product.fabricType}
           </p>
-          <p className={`font-bold text-xl mt-2 ${textColor}`}>
-            ₹{product.price}
-          </p>
+          {/* Price from sizePricing */}
+          {product.sizePricing && Object.values(product.sizePricing).some(p => p) ? (
+            <p className={`font-bold text-lg mt-1 ${textColor}`}>
+              from ₹{Math.min(...Object.values(product.sizePricing).filter(p => p).map(Number))}
+            </p>
+          ) : product.price ? (
+            <p className={`font-bold text-lg mt-1 ${textColor}`}>₹{product.price}</p>
+          ) : null}
 
           {/* 🔹 Show Pant-as-Suit Badge */}
           {product.type === "PANT" && product.isPantAsSuit && (
-            <span className="inline-block bg-green-500 text-white text-xs px-2 py-1 rounded-full mt-2">
-              Pant as Suit
+            <span className={`relative overflow-hidden inline-block border text-[10px] uppercase tracking-[0.15em] px-3 py-1.5 rounded-full mt-3 font-medium transition-colors ${theme === "dark" ? "border-white/30 text-white/90 bg-white/5" : "border-black/30 text-black/90 bg-black/5"}`}>
+              <span className="relative z-10">Pant as Suit</span>
+              <motion.div 
+                animate={{ x: ['-200%', '200%'] }} 
+                transition={{ repeat: Infinity, duration: 2.5, ease: "linear", repeatDelay: 1 }} 
+                className={`absolute inset-0 z-0 w-1/2 skew-x-12 ${theme === "dark" ? "bg-gradient-to-r from-transparent via-white/10 to-transparent" : "bg-gradient-to-r from-transparent via-black/10 to-transparent"}`} 
+              />
             </span>
           )}
           
           {/* 🔹 Show Suit-as-Pant Badge */}
           {product.type === "SUIT" && product.isSuitAsPant && (
-            <span className="inline-block bg-blue-500 text-white text-xs px-2 py-1 rounded-full mt-2">
-              Suit as Pant
+            <span className={`relative overflow-hidden inline-block border text-[10px] uppercase tracking-[0.15em] px-3 py-1.5 rounded-full mt-3 font-medium transition-colors ${theme === "dark" ? "border-white/30 text-white/90 bg-white/5" : "border-black/30 text-black/90 bg-black/5"}`}>
+              <span className="relative z-10">Suit as Pant</span>
+              <motion.div 
+                animate={{ x: ['-200%', '200%'] }} 
+                transition={{ repeat: Infinity, duration: 2.5, ease: "linear", repeatDelay: 1.5 }} 
+                className={`absolute inset-0 z-0 w-1/2 skew-x-12 ${theme === "dark" ? "bg-gradient-to-r from-transparent via-white/10 to-transparent" : "bg-gradient-to-r from-transparent via-black/10 to-transparent"}`} 
+              />
             </span>
           )}
         </div>
@@ -254,22 +269,22 @@ export default function ProductListing() {
   return (
     <div
       className={`min-h-screen transition-colors duration-500 ${
-        theme === "dark" ? "bg-black text-white" : "bg-white text-black"
+        theme === "dark" ? "bg-[#0c0c0c] text-[#f5f5f0]" : "bg-[#f5f5f0] text-[#0c0c0c]"
       }`}
     >
       {/* Navbar */}
       <div
         className={`sticky top-0 z-50 backdrop-blur-md ${
           theme === "dark"
-            ? "bg-black border-b border-gray-700"
-            : "bg-white border-b border-gray-200"
+            ? "bg-[#0c0c0c]/80 border-b border-white/10"
+            : "bg-[#f5f5f0]/80 border-b border-black/10"
         }`}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <div
             onClick={() => navigate("/")}
-            className={`text-2xl font-bold cursor-pointer ${
-              theme === "dark" ? "text-white" : "text-black"
+            className={`text-2xl font-bold font-serif cursor-pointer ${
+              theme === "dark" ? "text-[#f5f5f0]" : "text-[#0c0c0c]"
             }`}
           >
             NE
@@ -283,13 +298,12 @@ export default function ProductListing() {
               />
               <input
                 type="text"
-                placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400 ${
+                className={`pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none ${
                   theme === "dark"
-                    ? "border-gray-700 bg-black text-white"
-                    : "border-gray-300 bg-white text-black"
+                    ? "border-white/20 bg-[#121212] text-white"
+                    : "border-black/20 bg-white text-black"
                 }`}
               />
             </div>
@@ -325,12 +339,6 @@ export default function ProductListing() {
                 <Moon className="w-5 h-5 text-gray-700" />
               )}
             </button>
-            <button
-              className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
       </div>
@@ -340,10 +348,10 @@ export default function ProductListing() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10 text-center"
+          className="mb-8 text-center"
         >
           <h1
-            className={`text-5xl md:text-6xl font-extrabold mb-4 ${
+            className={`text-3xl sm:text-4xl md:text-6xl font-extrabold mb-3 ${
               theme === "dark" ? "text-white" : "text-black"
             }`}
           >
@@ -353,7 +361,7 @@ export default function ProductListing() {
             key={filteredAndSortedProducts.length}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={`text-xl ${
+            className={`text-base sm:text-xl ${
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             }`}
           >
