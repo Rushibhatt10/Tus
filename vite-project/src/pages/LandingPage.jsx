@@ -455,6 +455,17 @@ const LandingPage = () => {
         </div>
       </section>
 
+      <button
+        onClick={() => navigate("/admin")}
+        className={`fixed bottom-4 left-4 z-50 px-4 py-2.5 rounded-full border text-xs uppercase tracking-[0.18em] font-semibold backdrop-blur-md transition ${
+          theme === "dark"
+            ? "bg-[#0c0c0c]/80 text-[#f5f5f0] border-white/25 hover:bg-[#0c0c0c]"
+            : "bg-[#f5f5f0]/85 text-[#0c0c0c] border-black/20 hover:bg-white"
+        }`}
+      >
+        Admin Panel
+      </button>
+
     </div>
   );
 };

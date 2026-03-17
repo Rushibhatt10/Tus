@@ -1,16 +1,14 @@
 import React, { useEffect, useState, useMemo, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { db, auth } from "../firebase";
+import { db } from "../firebase";
 import {
   collection,
   addDoc,
-  getDoc,
   deleteDoc,
   updateDoc,
   doc,
   onSnapshot,
 } from "firebase/firestore";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
 import axios from "axios";
 import { ThemeContext } from "../context/ThemeContext";
 import {
@@ -29,7 +27,7 @@ import {
 const AdminPanel = () => {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -39,7 +37,7 @@ const AdminPanel = () => {
   const [orders, setOrders] = useState([]);
 
   // Auth states
-  const [adminEmail, setAdminEmail] = useState("");
+  const [adminName, setAdminName] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
@@ -86,55 +84,7 @@ const AdminPanel = () => {
   const [productToDelete, setProductToDelete] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  const imgbbApiKey = import.meta.env.VITE_IMGBB_API_KEY;
-  const allowedAdminEmails = useMemo(
-    () =>
-      (import.meta.env.VITE_ADMIN_EMAILS || "")
-        .split(",")
-        .map((email) => email.trim().toLowerCase())
-        .filter(Boolean),
-    []
-  );
-
-  const isUserAdmin = async (currentUser) => {
-    if (!currentUser) return false;
-    const email = (currentUser.email || "").toLowerCase();
-    if (allowedAdminEmails.includes(email)) return true;
-
-    try {
-      const profileRef = doc(db, "users", currentUser.uid);
-      const profileSnap = await getDoc(profileRef);
-      if (!profileSnap.exists()) return false;
-      const profile = profileSnap.data();
-      return profile?.isAdmin === true || profile?.role === "admin";
-    } catch (error) {
-      console.error("Admin role check failed:", error);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      const hasAdminAccess = await isUserAdmin(currentUser);
-      if (hasAdminAccess) {
-        setUser(currentUser);
-        setAuthError("");
-      } else {
-        await firebaseSignOut(auth);
-        setUser(null);
-        setAuthError("This account is not allowed to access admin panel.");
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const imgbbApiKey = import.meta.env.VITE_IMGBB_API_KEY || "52848fd9eb0f7acc4f4fa3c5cd7ba2de";
 
   // Real-time data fetching
   useEffect(() => {
@@ -166,36 +116,25 @@ const AdminPanel = () => {
   }, [type]);
 
   // Auth handlers
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     setAuthError("");
-    setLoading(true);
+    const ADMIN_NAME = "Hardik";
+    const ADMIN_PASSWORD = "hardik@1234";
 
-    try {
-      const result = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      const hasAdminAccess = await isUserAdmin(result.user);
-
-      if (!hasAdminAccess) {
-        await firebaseSignOut(auth);
-        setAuthError("This account is not allowed to access admin panel.");
-        setToast({ show: true, message: "Access denied", type: "error" });
-        return;
-      }
-
-      setUser(result.user);
+    if (adminName === ADMIN_NAME && adminPassword === ADMIN_PASSWORD) {
+      setUser({ name: ADMIN_NAME, isAdmin: true });
       setToast({ show: true, message: "Login successful!", type: "success" });
-      setAdminEmail("");
+      setAdminName("");
       setAdminPassword("");
-    } catch (error) {
-      setAuthError("Invalid admin email or password");
-      setToast({ show: true, message: "Login failed", type: "error" });
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    setAuthError("Invalid name or password");
+    setToast({ show: true, message: "Login failed", type: "error" });
   };
 
-  const handleLogout = async () => {
-    await firebaseSignOut(auth);
+  const handleLogout = () => {
     setUser(null);
     setToast({ show: true, message: "Logged out successfully", type: "success" });
   };
@@ -244,11 +183,6 @@ const AdminPanel = () => {
       setToast({ show: true, message: "Please upload a main hero image", type: "error" });
       return;
     }
-    if (!imgbbApiKey) {
-      setToast({ show: true, message: "Image upload key missing. Set VITE_IMGBB_API_KEY", type: "error" });
-      return;
-    }
-
     const finalMaterial = type === "SUIT" ? "PANTS" : material;
     setSubmitLoading(true);
     const { heroUrl, galleryUrls, finalImages } = await handleImageUpload();
@@ -414,10 +348,10 @@ const AdminPanel = () => {
               </div>
             )}
             <input
-              type="email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="Admin Email"
+              type="text"
+              value={adminName}
+              onChange={(e) => setAdminName(e.target.value)}
+              placeholder="Admin Username"
               className={`w-full p-4 border rounded-xl focus:outline-none focus:ring-2 ${authInputTheme}`}
               required
             />
