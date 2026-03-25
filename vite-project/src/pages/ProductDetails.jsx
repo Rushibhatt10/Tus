@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
-import { ArrowLeft, ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, X, ZoomIn, Info } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 
 const ProductDetails = () => {
@@ -443,6 +443,71 @@ const ProductDetails = () => {
               >
                 Add to Cart
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Material Required / Size Chart Note */}
+        <div className="mt-12 bg-white/60 dark:bg-white/5 backdrop-blur-md rounded-3xl p-6 md:p-10 border border-black/10 dark:border-white/10 shadow-xl overflow-hidden relative">
+          {/* Subtle background decoration */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-black/5 dark:bg-white/5 rounded-full blur-3xl"></div>
+          
+          <div className="flex flex-col md:flex-row gap-8 relative z-10">
+            <div className="flex-shrink-0">
+               <div className="inline-flex items-center justify-center p-3 bg-black dark:bg-white text-white dark:text-black rounded-2xl shadow-lg">
+                <Info size={24} />
+              </div>
+            </div>
+
+            <div className="flex-grow">
+              <h2 className="text-xl md:text-2xl font-bold mb-6 tracking-tight">Material Required / Size Chart</h2>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Shirt Section */}
+                <div className="space-y-4">
+                  <h3 className="font-bold text-lg opacity-90 flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-black dark:bg-white rounded-full inline-block"></span>
+                    For stitching a Shirt:
+                  </h3>
+                  <ul className="space-y-3 pl-3">
+                    <li className="flex items-start gap-4">
+                      <span className="font-bold text-black dark:text-white whitespace-nowrap min-w-[90px]">1.4 Meters</span>
+                      <span className="text-sm md:text-base opacity-70">— for half sleeve shirts of sizes S, M, L & XL</span>
+                    </li>
+                    <li className="flex items-start gap-4">
+                      <span className="font-bold text-black dark:text-white whitespace-nowrap min-w-[90px]">1.6 Meters</span>
+                      <span className="text-sm md:text-base opacity-70">— for full sleeve shirts of sizes S, M, L & XL</span>
+                    </li>
+                    <li className="flex items-start gap-4">
+                      <span className="font-bold text-black dark:text-white whitespace-nowrap min-w-[90px]">1.8 Meters</span>
+                      <span className="text-sm md:text-base opacity-70">— for full sleeve shirts of sizes XXL & above</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Kurta Section */}
+                <div className="space-y-4">
+                  <h3 className="font-bold text-lg opacity-90 flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-black dark:bg-white rounded-full inline-block"></span>
+                    For stitching a Kurta:
+                  </h3>
+                  <ul className="space-y-3 pl-3">
+                    <li className="flex items-start gap-4">
+                      <span className="font-bold text-black dark:text-white whitespace-nowrap min-w-[90px]">2.25 Meters</span>
+                      <span className="text-sm md:text-base opacity-70">— for a knee length Kurta</span>
+                    </li>
+                    <li className="flex items-start gap-4">
+                      <span className="font-bold text-black dark:text-white whitespace-nowrap min-w-[90px]">4.0 Meters</span>
+                      <span className="text-sm md:text-base opacity-70">— for a knee length Kurta and Pyjama</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-black/5 dark:border-white/5 flex items-center gap-3">
+                <span className="text-xs uppercase tracking-widest font-bold opacity-40">Note</span>
+                <p className="text-sm italic opacity-60">Fabric cuts of various sizes subject to change.</p>
+              </div>
             </div>
           </div>
         </div>
