@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { ArrowLeft, ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -13,6 +13,10 @@ const ProductDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [user, setUser] = useState(null);
   const [zoomedOpen, setZoomedOpen] = useState(false);
+  const [siteSettings, setSiteSettings] = useState(null);
+  const [selectedLength, setSelectedLength] = useState(null);
+  const [customLength, setCustomLength] = useState("");
+  const [isCustomMode, setIsCustomMode] = useState(false);
 
   // ✅ Track logged-in user
   useEffect(() => {
@@ -42,6 +46,16 @@ const ProductDetails = () => {
     fetchProduct();
   }, [id]);
 
+  // Keep pricing settings (global discount etc.) in sync
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "global"), (docSnap) => {
+      if (docSnap.exists()) {
+        setSiteSettings(docSnap.data());
+      }
+    });
+    return () => unsub();
+  }, []);
+
   // Navigation helpers
   const goPrev = () => {
     if (!product?.images) return;
@@ -52,13 +66,56 @@ const ProductDetails = () => {
     setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
   };
 
+  const getSelectedLengthMeta = () => {
+    if (isCustomMode) {
+      const meters = parseFloat(customLength);
+      if (!Number.isFinite(meters) || meters <= 0) return null;
+      return { label: `${meters} m`, meters };
+    }
+
+    if (selectedLength) {
+      const meters = parseFloat(selectedLength);
+      if (!Number.isFinite(meters) || meters <= 0) return null;
+      return { label: selectedLength, meters };
+    }
+
+    return null;
+  };
+
+  const buildSelectedProduct = () => {
+    const selected = getSelectedLengthMeta();
+    if (!selected) return null;
+
+    const sizePrice = product?.sizePricing?.[selected.label];
+    const selectedUnitPrice = Number.isFinite(Number(sizePrice))
+      ? Number(sizePrice)
+      : Number(product?.price || 0) * selected.meters;
+
+    return {
+      ...product,
+      selectedLength: selected.label,
+      selectedLengthMeters: selected.meters,
+      selectedUnitPrice,
+    };
+  };
+
   // ✅ Buy now
   const handleBuyNow = () => {
-    navigate("/checkout", { state: { product } });
+    const selectedProduct = buildSelectedProduct();
+    if (!selectedProduct) {
+      alert("Please select a fabric length first.");
+      return;
+    }
+    navigate("/checkout", { state: { product: selectedProduct } });
   };
 
   // ✅ Add to cart
   const handleAddToCart = async () => {
+    const selectedProduct = buildSelectedProduct();
+    if (!selectedProduct) {
+      alert("Please select a fabric length first.");
+      return;
+    }
     if (!user) {
       alert("Please login to add items to your cart.");
       navigate("/login");
@@ -66,9 +123,12 @@ const ProductDetails = () => {
     }
 
     try {
-      const cartItemRef = doc(db, "users", user.uid, "cart", id);
+      const safeLengthKey = (selectedProduct.selectedLength || "default")
+        .replace(/\s+/g, "")
+        .replace(/[^0-9.a-zA-Z_-]/g, "");
+      const cartItemRef = doc(db, "users", user.uid, "cart", `${id}_${safeLengthKey}`);
       await setDoc(cartItemRef, {
-        ...product,
+        ...selectedProduct,
         quantity: 1,
         addedAt: new Date(),
       });
@@ -240,26 +300,135 @@ const ProductDetails = () => {
               <p><span className="font-semibold">Availability:</span> {product.availability || "N/A"}</p>
             </div>
 
-            {/* Per-Meter Pricing Table */}
-            {product.sizePricing && Object.keys(product.sizePricing).length > 0 && (
-              <div>
-                <p className="text-xs uppercase tracking-widest font-semibold opacity-60 mb-3">Pricing (per meter)</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(product.sizePricing).map(([length, price]) =>
-                    price ? (
-                      <div
-                        key={length}
-                        className="flex justify-between items-center px-4 py-3 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 text-sm font-medium"
-                      >
-                        <span className="opacity-70">{length}</span>
-                        <span className="font-bold text-base">₹{price}</span>
-                      </div>
-                    ) : null
-                  )}
+            {/* Dynamic Pricing Logic */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-end border-b border-black/10 dark:border-white/10 pb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-widest font-semibold opacity-60 text-gray-500">Base Price</p>
+                  <p className="text-xl font-medium">₹{product.price} <span className="text-sm">/ meter</span></p>
                 </div>
+                {product.discount > 0 && (
+                  <div className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                    {product.discount}% OFF
+                  </div>
+                )}
+                {siteSettings?.globalDiscountEnabled && siteSettings.globalDiscountPercent > 0 && !product.discount && (
+                  <div className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                    {siteSettings.globalDiscountPercent}% GLOBAL OFF
+                  </div>
+                )}
               </div>
-            )}
 
+              {/* Length Selection */}
+              <div className="space-y-3">
+                <p className="font-semibold">Select Fabric Length</p>
+                
+                {product.availableLengths && Object.keys(product.availableLengths).length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {Object.entries(product.availableLengths).map(([len, inStock]) => {
+                      const pVal = (product.sizePricing && product.sizePricing[len]) ? Number(product.sizePricing[len]) : Math.round(Number(product.price) * parseFloat(len));
+                      return (
+                      <button
+                        key={len}
+                        disabled={!inStock}
+                        onClick={() => {
+                          setIsCustomMode(false);
+                          setSelectedLength(len);
+                          setCustomLength("");
+                        }}
+                        className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border transition ${
+                          !inStock
+                            ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400"
+                            : !isCustomMode && selectedLength === len
+                              ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-md transform scale-105"
+                              : "bg-transparent border-gray-300 dark:border-gray-600 hover:border-black dark:hover:border-white"
+                        }`}
+                      >
+                        <span className="font-semibold text-sm sm:text-base">{len}</span>
+                        {inStock ? (
+                          <span className="text-sm font-bold mt-1 opacity-80">₹{pVal}</span>
+                        ) : (
+                          <span className="text-xs opacity-60 mt-1">Out of Stock</span>
+                        )}
+                      </button>
+                    )})}
+                  </div>
+                )}
+
+                {product.allowCustomLength !== false && (
+                  <div className="mt-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-black/5 dark:bg-white/5">
+                    <label className="flex items-center gap-3 cursor-pointer mb-3">
+                      <input
+                        type="radio"
+                        checked={isCustomMode}
+                        onChange={() => {
+                          setIsCustomMode(true);
+                          setSelectedLength(null);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="font-semibold text-sm">Enter Custom Length (m)</span>
+                    </label>
+                    {isCustomMode && (
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.5"
+                          max="20"
+                          value={customLength}
+                          onChange={(e) => setCustomLength(e.target.value)}
+                          placeholder="e.g. 2.5"
+                          className="w-full sm:w-1/2 p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                        />
+                        <span className="text-sm font-medium opacity-70">meters</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Real-time Calculation */}
+              {((!isCustomMode && selectedLength) || (isCustomMode && customLength && parseFloat(customLength) > 0)) && (
+                <div className="mt-6 p-5 rounded-2xl bg-black dark:bg-white text-white dark:text-black shadow-xl">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="opacity-80 text-sm">Selected Length:</span>
+                    <span className="font-semibold">{isCustomMode ? parseFloat(customLength) : parseFloat(selectedLength)} m</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="opacity-80 text-sm">Price per meter:</span>
+                    <span className="font-semibold">₹{product.price}</span>
+                  </div>
+                  
+                  {(() => {
+                    const basePrice = Number(product.price);
+                    const prodDiscount = Number(product.discount || 0);
+                    const globDiscount = siteSettings?.globalDiscountEnabled ? Number(siteSettings?.globalDiscountPercent || 0) : 0;
+                    const discountPercent = Math.max(prodDiscount, globDiscount);
+                    
+                    const len = isCustomMode ? parseFloat(customLength) : parseFloat(selectedLength);
+                    const originalTotal = basePrice * len;
+                    const finalTotal = originalTotal * (1 - discountPercent / 100);
+
+                    return (
+                      <>
+                        <div className="border-t border-white/20 dark:border-black/20 pt-4 flex justify-between items-end">
+                          <span className="uppercase tracking-widest text-xs font-bold opacity-80">Final Total</span>
+                          <div className="text-right">
+                            {discountPercent > 0 && (
+                              <p className="text-sm line-through opacity-60 mb-1">₹{originalTotal.toFixed(2)}</p>
+                            )}
+                            <p className="text-3xl font-extrabold flex items-center gap-2">
+                              ₹{finalTotal.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 md:gap-6 mt-4 md:mt-6">
               <button

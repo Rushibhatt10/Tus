@@ -50,15 +50,32 @@ export default function Cart() {
     }
   };
 
-  // Get best price for an item: prefer saved selectedLength price, otherwise min of sizePricing
+  // Get best price for an item with selected length/custom length support
   const getItemPrice = (item) => {
+    if (Number.isFinite(Number(item.selectedUnitPrice)) && Number(item.selectedUnitPrice) > 0) {
+      return Number(item.selectedUnitPrice);
+    }
+
+    const selectedLength = String(item.selectedLength || "");
+    const selectedLengthMeters = Number.isFinite(Number(item.selectedLengthMeters))
+      ? Number(item.selectedLengthMeters)
+      : parseFloat(selectedLength);
+
     if (item.sizePricing) {
-      if (item.selectedLength && item.sizePricing[item.selectedLength]) {
-        return Number(item.sizePricing[item.selectedLength]);
+      if (selectedLength && item.sizePricing[selectedLength]) {
+        return Number(item.sizePricing[selectedLength]);
       }
-      const prices = Object.values(item.sizePricing).filter(p => p).map(Number);
+      if (Number.isFinite(selectedLengthMeters) && selectedLengthMeters > 0) {
+        return Number(item.price || 0) * selectedLengthMeters;
+      }
+      const prices = Object.values(item.sizePricing).filter((p) => p).map(Number);
       if (prices.length > 0) return Math.min(...prices);
     }
+
+    if (Number.isFinite(selectedLengthMeters) && selectedLengthMeters > 0) {
+      return Number(item.price || 0) * selectedLengthMeters;
+    }
+
     return Number(item.price || 0);
   };
 
@@ -144,6 +161,11 @@ export default function Cart() {
             <p className={`text-sm mb-2 ${textSecondaryClass}`}>
               {item.brand || "Brand N/A"}
             </p>
+            {item.selectedLength && (
+              <p className={`text-xs mb-2 ${textSecondaryClass}`}>
+                Length: {item.selectedLength}
+              </p>
+            )}
             <p className="font-bold text-lg mb-4">
               {getItemPrice(item) > 0 ? `from ₹${formatCurrency(getItemPrice(item))}` : 'Price on selection'}
             </p>

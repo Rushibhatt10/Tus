@@ -1,11 +1,12 @@
 import { useState, useEffect, useContext, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MapPin, Instagram, Phone, Sun, Moon, ArrowRight, Menu, X } from "lucide-react";
+import { MapPin, Instagram, Phone, Sun, Moon, ArrowRight, Menu, X, MessageCircle, Mail } from "lucide-react";
 import { ThemeContext } from "../context/ThemeContext";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import SplitType from "split-type";
 import Lenis from "@studio-freight/lenis";
+import { db } from "../firebase";
+import { doc, onSnapshot, collection, query, where, getDocs, limit } from "firebase/firestore";
 
 import hero1 from "../assets/1.jpg";
 import hero2 from "../assets/2.jpeg";
@@ -21,6 +22,29 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [siteSettings, setSiteSettings] = useState(null);
+  const [giftingProducts, setGiftingProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchGifting = async () => {
+      try {
+        const q = query(collection(db, "products"), where("isGifting", "==", true), limit(4));
+        const snap = await getDocs(q);
+        const prods = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        setGiftingProducts(prods);
+      } catch(e) { console.error("Error fetching gifting products", e); }
+    };
+    fetchGifting();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "global"), (docSnap) => {
+      if (docSnap.exists()) {
+        setSiteSettings(docSnap.data());
+      }
+    });
+    return () => unsub();
+  }, []);
   
   // Refs
   const lScroll = useRef(null);
@@ -56,86 +80,93 @@ const LandingPage = () => {
 
   // GSAP Animations
   useEffect(() => {
-    // 1. Hero Reveal Animation (Curtain Effect + Scale)
-    gsap.fromTo(
-      heroImageRef.current,
-      { scale: 1.2, filter: "brightness(0.2)" },
-      { 
-        scale: 1, 
-        filter: "brightness(0.6)", 
-        duration: 2.5, 
-        ease: "power3.inOut" 
-      }
-    );
+    titleRefs.current = titleRefs.current.filter((el) => el && el.isConnected);
+    textRefs.current = textRefs.current.filter((el) => el && el.isConnected);
+    parallaxImages.current = parallaxImages.current.filter((el) => el && el.isConnected);
 
-    // 2. Split Type Animations for Titles
-    titleRefs.current.forEach((el) => {
-      if(!el) return;
-      const text = new SplitType(el, { types: 'chars,lines' });
-      
-      // Ensure container overflow is hidden so letters slide UP from invisible
-      el.style.overflow = "hidden";
-      
+    let refreshTimer;
+    const ctx = gsap.context(() => {
+      // 1. Hero Reveal Animation (Curtain Effect + Scale)
       gsap.fromTo(
-        text.chars,
-        { y: 150, opacity: 0 },
+        heroImageRef.current,
+        { scale: 1.2, filter: "brightness(0.2)" },
         {
-          y: 0,
-          opacity: 1,
-          stagger: 0.02,
-          duration: 1.2,
-          ease: "power4.out",
-          scrollTrigger: {
-            trigger: el,
-            start: "top 90%",
-            toggleActions: "play none none reverse"
-          }
+          scale: 1,
+          filter: "brightness(0.6)",
+          duration: 2.5,
+          ease: "power3.inOut",
         }
       );
-    });
 
-    // 3. Simple Text Fade UPs
-    textRefs.current.forEach((el) => {
-      if(!el) return;
-      gsap.fromTo(el, 
-        { y: 50, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1.2,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: el,
-            start: "top 85%",
-            toggleActions: "play none none reverse"
+      // 2. Animate title blocks without mutating React-managed text nodes
+      titleRefs.current.forEach((el) => {
+        if (!el) return;
+        gsap.fromTo(
+          el,
+          { y: 80, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 1.1,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: el,
+              start: "top 90%",
+              toggleActions: "play none none reverse",
+            },
           }
-        }
-      );
-    });
+        );
+      });
 
-    // 4. Parallax Images in Collection
-    parallaxImages.current.forEach((img) => {
-      if(!img) return;
-      gsap.fromTo(img,
-        { y: -30 },
-        {
-          y: 30,
-          ease: "none",
-          scrollTrigger: {
-            trigger: img.parentElement,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true
+      // 3. Simple Text Fade UPs
+      textRefs.current.forEach((el) => {
+        if (!el) return;
+        gsap.fromTo(
+          el,
+          { y: 50, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 1.2,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: el,
+              start: "top 85%",
+              toggleActions: "play none none reverse",
+            },
           }
-        }
-      );
-    });
-    
-    // Refresh ScrollTrigger to ensure calculations are correct with layout
-    setTimeout(() => {
-       ScrollTrigger.refresh();
-    }, 100);
+        );
+      });
 
+      // 4. Parallax Images in Collection
+      parallaxImages.current.forEach((img) => {
+        if (!img) return;
+        gsap.fromTo(
+          img,
+          { y: -30 },
+          {
+            y: 30,
+            ease: "none",
+            scrollTrigger: {
+              trigger: img.parentElement,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          }
+        );
+      });
+
+      // Refresh ScrollTrigger to ensure calculations are correct with layout
+      refreshTimer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 100);
+    }, heroRef);
+
+    return () => {
+      clearTimeout(refreshTimer);
+      ctx.revert();
+    };
   }, []);
 
   // Make a beautiful magnetic button effect
@@ -155,27 +186,14 @@ const LandingPage = () => {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     const form = e.target;
-    const formData = new FormData(form);
-    
-    fetch("https://getform.io/f/anlnxjva", {
-      method: "POST",
-      body: formData,
-      headers: {
-        "Accept": "application/json",
-      },
-    })
-    .then(response => {
-      if (response.ok) {
-        form.reset();
-        alert("Thank you! Your message has been sent successfully.");
-      } else {
-        alert("Oops! There was a problem submitting your form");
-      }
-    })
-    .catch(error => {
-      console.error(error);
-      alert("Oops! There was a problem submitting your form");
-    });
+    const name = form.name.value;
+    const email = form.email.value;
+    const message = form.message.value;
+
+    const subject = encodeURIComponent(`Message from ${name} (${email})`);
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
+
+    window.location.href = `mailto:nidhienterprises63@gmail.com?subject=${subject}&body=${body}`;
   };
 
   const navLinks = [
@@ -186,6 +204,12 @@ const LandingPage = () => {
 
   return (
     <div className={`transition-colors duration-1000 ${theme === "dark" ? "bg-[#0c0c0c] text-[#f5f5f0]" : "bg-[#f5f5f0] text-[#0c0c0c]"}`}>
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
       
       <nav className={`fixed top-0 w-full z-50 px-5 md:px-12 py-5 md:py-8 flex justify-between items-center transition-colors duration-1000 ${theme === "dark" ? "text-[#f5f5f0]" : "text-[#0c0c0c]"}`}>
         <Link to="/" className="text-lg md:text-2xl font-serif tracking-widest uppercase origin-left hover:scale-105 transition-transform duration-500 z-50 relative">
@@ -215,6 +239,17 @@ const LandingPage = () => {
             <div className="relative z-10 flex">
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </div>
+          </button>
+
+          <button
+            onClick={() => navigate('/admin')}
+            className={`ml-2 px-4 py-1.5 rounded-full border text-xs uppercase tracking-widest font-semibold transition-colors duration-300 ${
+              theme === "dark"
+                ? "border-white/30 text-white hover:bg-white hover:text-black"
+                : "border-black/30 text-black hover:bg-black hover:text-white"
+            }`}
+          >
+            Admin
           </button>
         </div>
 
@@ -257,6 +292,14 @@ const LandingPage = () => {
             >
               Shop Now
             </button>
+            <button
+              onClick={() => { navigate('/admin'); setMobileMenuOpen(false); }}
+              className={`px-8 py-3 rounded-full border text-xs tracking-widest ${
+                theme === "dark" ? "border-white/30 text-white" : "border-black/30 text-black"
+              }`}
+            >
+              Admin Panel
+            </button>
           </div>
         )}
         
@@ -270,27 +313,45 @@ const LandingPage = () => {
         <div 
           ref={heroImageRef}
           className="absolute inset-0 bg-cover bg-center will-change-transform"
-          style={{ backgroundImage: `url(${hero1})` }}
+          style={{ backgroundImage: siteSettings?.heroImage ? `url(${siteSettings.heroImage})` : `url(${hero1})` }}
         />
+        
+        {/* Curved Marquee Overlay */}
+        {(() => {
+          const mText = siteSettings?.marqueeText || "Premium Fabrics — Handcrafted Tailoring — Nidhi Enterprises";
+          return (
+            <div className="absolute top-[20%] left-[-10%] w-[120%] z-20 pointer-events-none opacity-80 overflow-hidden" style={{ transform: "rotate(-4deg)" }}>
+              <div className="flex whitespace-nowrap bg-transparent mix-blend-difference text-[#f5f5f0]" style={{ animation: "marquee 25s linear infinite" }}>
+                {[...Array(20)].map((_, i) => (
+                  <span key={i} className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif tracking-[0.1em] uppercase mx-4 sm:mx-8">
+                    {mText} ✺ 
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="relative z-10 w-full flex flex-col md:flex-row justify-between items-end gap-6 md:gap-12">
           <h1 
             ref={el => el && !titleRefs.current.includes(el) && titleRefs.current.push(el)} 
             className="font-serif uppercase tracking-[-0.02em] text-white leading-[0.9] text-[clamp(2.5rem,12vw,8rem)] md:text-[clamp(5.2rem,9.4vw,11rem)] max-w-[12ch]"
           >
-            <span className="block">The Art</span>
-            <span className="block">of Clothing</span>
+            {(siteSettings?.heroHeading || "The Art\nof Clothing").split('\n').map((line, idx) => (
+               <span key={idx} className="block">{line}</span>
+            ))}
           </h1>
           <div className="flex flex-col items-start md:items-end gap-4 md:gap-6 text-white pb-2 md:pb-4 max-w-sm">
             <p ref={el => el && !textRefs.current.includes(el) && textRefs.current.push(el)} className="text-left md:text-right text-base md:text-xl font-light opacity-80 leading-relaxed">
-              Redefining luxury clothing with the finest fabrics in Ahmedabad.
+              {siteSettings?.heroSubtext || "Redefining luxury clothing with the finest fabrics in Ahmedabad."}
             </p>
             <button 
               onMouseMove={handleMagneticMove}
               onMouseLeave={handleMagneticLeave}
-              onClick={() => navigate('/products')}
+              onClick={() => navigate(siteSettings?.heroCtaLink || '/products')}
               className="group flex items-center gap-3 md:gap-4 px-6 md:px-8 py-3 md:py-4 rounded-full border border-white/30 backdrop-blur-md hover:bg-white hover:text-black transition-colors duration-500 will-change-transform mt-2 md:mt-4 w-full md:w-auto justify-center"
             >
-              <span className="uppercase tracking-widest text-xs font-semibold">Discover Collection</span>
+              <span className="uppercase tracking-widest text-xs font-semibold">{siteSettings?.heroCtaText || "Discover Collection"}</span>
               <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
             </button>
           </div>
@@ -347,23 +408,67 @@ const LandingPage = () => {
             </div>
           </div>
           
-          {/* Item 3 */}
+          {/* Item 3 - New Arrivals */}
           <div className="flex flex-col gap-5 md:mt-32">
-            <div className="overflow-hidden w-full aspect-[3/4] group relative cursor-pointer" onClick={() => navigate('/products?type=PANT')}>
+            <div className="overflow-hidden w-full aspect-[3/4] group relative cursor-pointer" onClick={() => navigate('/products?newArrivals=true')}>
               <div 
                 ref={el => el && !parallaxImages.current.includes(el) && parallaxImages.current.push(el)}
                 className="absolute inset-[-15%] w-[130%] h-[130%] bg-cover bg-center transition-transform duration-[1.5s] ease-out group-hover:scale-105 will-change-transform"
                 style={{ backgroundImage: `url(${hero4})`, backgroundPosition: 'center 30%' }}
               />
               <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-700" />
+              {/* New Arrivals badge */}
+              <div className="absolute top-4 right-4 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-black dark:text-white shadow-sm">
+                ✦ New
+              </div>
             </div>
             <div ref={el => el && !textRefs.current.includes(el) && textRefs.current.push(el)} className="flex items-center gap-4">
               <span className="text-sm uppercase tracking-widest opacity-50">03 /</span>
-              <h4 className="text-xl md:text-2xl font-serif uppercase tracking-widest">Luxury Trousers</h4>
+              <h4 className="text-xl md:text-2xl font-serif uppercase tracking-widest">New Arrivals</h4>
             </div>
           </div>
         </div>
       </section>
+
+      {/* ================= EXCLUSIVE GIFTING ================= */}
+      {giftingProducts.length > 0 && (
+        <section className="py-20 md:py-32 px-5 md:px-12 w-full bg-[#fcfcfc] dark:bg-[#111111] transition-colors duration-1000">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 md:mb-20 border-b border-current pb-6 md:pb-8 opacity-80">
+            <div>
+              <h3 className="text-2xl md:text-5xl uppercase tracking-widest font-serif mb-4 text-[#d4af37]">The Art of Gifting</h3>
+              <p className="max-w-xl text-sm md:text-base opacity-70">Curated sets and exclusive pieces marked specifically for extraordinary presents.</p>
+            </div>
+            <button 
+              onClick={() => navigate('/products')}
+              className="mt-6 md:mt-0 flex items-center gap-2 border-b border-current pb-1 hover:pr-4 transition-all text-sm uppercase tracking-widest font-bold"
+            >
+              View All <ArrowRight size={16} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {giftingProducts.map((prod, i) => (
+              <div key={prod.id} className="group cursor-pointer flex flex-col gap-4" onClick={() => navigate(`/product/${prod.id}`)}>
+                <div className="overflow-hidden w-full aspect-[4/5] relative rounded-xl bg-gray-100 dark:bg-gray-800">
+                  <img 
+                    src={prod.images?.[0] || prod.heroImage || "https://via.placeholder.com/400"} 
+                    alt={prod.name}
+                    className="w-full h-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-105"
+                  />
+                  <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/80 backdrop-blur-sm text-black dark:text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm">
+                    🎁 Gifting
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-lg">{prod.name}</h4>
+                  <p className="opacity-60 text-sm mb-2">{prod.subCategory || prod.type}</p>
+                  <p className="font-bold">₹{prod.price}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ================= FABRIC STORYTELLING ================= */}
       <section id="tailoring" className="py-20 md:py-60 px-5 md:px-12 relative overflow-hidden flex items-center min-h-[80vh] md:min-h-[90vh]">
@@ -444,9 +549,9 @@ const LandingPage = () => {
 
         <div className="mt-16 md:mt-32 w-full max-w-7xl flex flex-col md:flex-row justify-between items-center md:items-end border-t border-current pt-10 md:pt-12 opacity-50 text-[10px] md:text-xs tracking-[0.2em] uppercase gap-6 md:gap-8">
           <div className="flex gap-8 md:gap-12">
-            <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity">Instagram</a>
-            <a href="https://wa.me/9265083688" target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity">WhatsApp</a>
-            <a href="mailto:info@nidhienterprises.com" className="hover:opacity-100 transition-opacity">Email Us</a>
+            <a href={siteSettings?.instagramLink || "https://instagram.com"} target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity">Instagram</a>
+            <a href={siteSettings?.whatsappLink || "https://wa.me/9265083688"} target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity">WhatsApp</a>
+            <a href={siteSettings?.emailAddress ? `mailto:${siteSettings.emailAddress}` : "mailto:nidhienterprises63@gmail.com"} className="hover:opacity-100 transition-opacity">Email Us</a>
           </div>
           <div className="flex flex-col items-center md:items-end gap-3 text-center md:text-right">
             <span>© 2026 Nidhi Enterprises</span>
@@ -455,16 +560,41 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <button
-        onClick={() => navigate("/admin")}
-        className={`fixed bottom-4 left-4 z-50 px-4 py-2.5 rounded-full border text-xs uppercase tracking-[0.18em] font-semibold backdrop-blur-md transition ${
-          theme === "dark"
-            ? "bg-[#0c0c0c]/80 text-[#f5f5f0] border-white/25 hover:bg-[#0c0c0c]"
-            : "bg-[#f5f5f0]/85 text-[#0c0c0c] border-black/20 hover:bg-white"
-        }`}
-      >
-        Admin Panel
-      </button>
+
+      {/* ================= FLOATING SOCIAL ICONS ================= */}
+      <div className="fixed bottom-6 right-5 z-50 flex flex-col gap-3">
+        {/* WhatsApp */}
+        <a
+          href={siteSettings?.whatsappLink || "https://wa.me/9265083688"}
+          target="_blank"
+          rel="noreferrer"
+          title="WhatsApp"
+          className="group w-11 h-11 flex items-center justify-center rounded-full bg-green-500 shadow-lg hover:scale-110 transition-transform duration-300"
+        >
+          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+          </svg>
+        </a>
+        {/* Instagram */}
+        <a
+          href={siteSettings?.instagramLink || "https://instagram.com"}
+          target="_blank"
+          rel="noreferrer"
+          title="Instagram"
+          className="group w-11 h-11 flex items-center justify-center rounded-full shadow-lg hover:scale-110 transition-transform duration-300"
+          style={{ background: "linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)" }}
+        >
+          <Instagram size={18} className="text-white" />
+        </a>
+        {/* Email */}
+        <a
+          href={siteSettings?.emailAddress ? `mailto:${siteSettings.emailAddress}` : "mailto:nidhienterprises63@gmail.com"}
+          title="Email Us"
+          className="group w-11 h-11 flex items-center justify-center rounded-full bg-[#0c0c0c] dark:bg-white shadow-lg hover:scale-110 transition-transform duration-300"
+        >
+          <Mail size={18} className="text-white dark:text-black" />
+        </a>
+      </div>
 
     </div>
   );

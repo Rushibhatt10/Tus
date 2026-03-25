@@ -255,14 +255,37 @@ export default function Account() {
                     ) : (
                       <div className="space-y-3">
                         {orders.map((o) => (
-                          <div key={o.id} className="flex items-center justify-between rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
-                            <div>
-                              <div className="font-medium">Order #{o.id.slice(0, 6)}</div>
-                              <div className="text-xs text-neutral-600 dark:text-neutral-400">{o.date || ""}</div>
+                          <div key={o.id} className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-bold text-lg">Order #{o.id.slice(0, 8)}</div>
+                                <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                                  {o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : o.date || "Just now"}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Badge variant={o.paymentStatus === "paid" ? "success" : "warning"}>
+                                  Payment: {o.paymentStatus || "pending"}
+                                </Badge>
+                                <Badge variant={o.orderStatus === "delivered" ? "success" : o.orderStatus === "shipped" ? "default" : "outline"}>
+                                  {o.orderStatus || "processing"}
+                                </Badge>
+                              </div>
                             </div>
-                            <Badge variant={o.status === "delivered" ? "success" : o.status === "cancelled" ? "danger" : o.status === "shipped" ? "default" : "outline"}>
-                              {o.status || "pending"}
-                            </Badge>
+                            
+                            <div className="divide-y divide-neutral-100 dark:divide-neutral-900">
+                              {o.items?.map((item, idx) => (
+                                <div key={idx} className="py-2 flex justify-between text-sm">
+                                  <span>{item.name} x {item.quantity}</span>
+                                  <span className="font-medium">₹{item.price * item.quantity}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="flex justify-between font-bold border-t pt-2">
+                              <span>Total Amount Paid</span>
+                              <span>₹{o.totalAmount || o.total}</span>
+                            </div>
                           </div>
                         ))}
                       </div>

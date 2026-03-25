@@ -9,7 +9,7 @@ import AdminPanel from "./pages/AdminPanel";
 import ProductDetails from "./pages/ProductDetails";
 import Account from "./pages/Account";
 import Cart from "./pages/Cart";
-import Checkout from "./pages/Cheakout";
+import Checkout from "./pages/Checkout";
 
 function App() {
   return (
