@@ -320,10 +320,10 @@ const LandingPage = () => {
         {(() => {
           const mText = siteSettings?.marqueeText || "Premium Fabrics — Handcrafted Tailoring — Nidhi Enterprises";
           return (
-            <div className="absolute top-[20%] left-[-10%] w-[120%] z-20 pointer-events-none opacity-80 overflow-hidden" style={{ transform: "rotate(-4deg)" }}>
+            <div className="absolute top-[15%] md:top-[20%] left-[-10%] w-[120%] z-20 pointer-events-none opacity-80 overflow-hidden" style={{ transform: "rotate(-4deg)" }}>
               <div className="flex whitespace-nowrap bg-transparent mix-blend-difference text-[#f5f5f0]" style={{ animation: "marquee 25s linear infinite" }}>
                 {[...Array(20)].map((_, i) => (
-                  <span key={i} className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif tracking-[0.1em] uppercase mx-4 sm:mx-8">
+                  <span key={i} className="text-xl sm:text-3xl md:text-5xl lg:text-6xl font-serif tracking-[0.05em] sm:tracking-[0.1em] uppercase mx-3 sm:mx-8">
                     {mText} ✺ 
                   </span>
                 ))}

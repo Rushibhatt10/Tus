@@ -38,6 +38,7 @@ export default function ProductListing() {
   );
   
   const [filters, setFilters] = useState({ isGifting: false, subCategory: "all" });
+  const [expandedMobileCategory, setExpandedMobileCategory] = useState(null);
   const viewMode = "grid";
   const { theme, toggleTheme } = useContext(ThemeContext);
 
@@ -444,8 +445,15 @@ export default function ProductListing() {
               </div>
 
               <div className="space-y-2.5">
-                <p className="text-[11px] uppercase tracking-[0.18em] opacity-60 font-semibold">SHIRTS</p>
-                <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setExpandedMobileCategory(expandedMobileCategory === "SHIRT" ? null : "SHIRT")}
+                  className="lg:hidden w-full flex items-center justify-between text-[11px] uppercase tracking-[0.18em] opacity-60 font-semibold"
+                >
+                  <span>SHIRTS</span>
+                  <span className="text-sm">{expandedMobileCategory === "SHIRT" ? "−" : "+"}</span>
+                </button>
+                <p className="hidden lg:block text-[11px] uppercase tracking-[0.18em] opacity-60 font-semibold">SHIRTS</p>
+                <div className={`flex-wrap gap-2 ${expandedMobileCategory === "SHIRT" ? "flex" : "hidden lg:flex"}`}>
                   <button
                     onClick={() => {
                       setSelectedType("SHIRT");
@@ -496,8 +504,15 @@ export default function ProductListing() {
               </div>
 
               <div className="space-y-2.5">
-                <p className="text-[11px] uppercase tracking-[0.18em] opacity-60 font-semibold">SUITS</p>
-                <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setExpandedMobileCategory(expandedMobileCategory === "SUIT" ? null : "SUIT")}
+                  className="lg:hidden w-full flex items-center justify-between text-[11px] uppercase tracking-[0.18em] opacity-60 font-semibold"
+                >
+                  <span>SUITS</span>
+                  <span className="text-sm">{expandedMobileCategory === "SUIT" ? "−" : "+"}</span>
+                </button>
+                <p className="hidden lg:block text-[11px] uppercase tracking-[0.18em] opacity-60 font-semibold">SUITS</p>
+                <div className={`flex-wrap gap-2 ${expandedMobileCategory === "SUIT" ? "flex" : "hidden lg:flex"}`}>
                   <button
                     onClick={() => {
                       setSelectedType("SUIT");
@@ -650,29 +665,29 @@ export default function ProductListing() {
           }`}>
             <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-current/10">
               {/* Payment Methods */}
-              <div className="flex items-center gap-3 px-5 py-4 flex-1">
-                <Shield size={18} className="shrink-0 text-blue-500" />
+              <div className="flex items-center gap-2.5 sm:gap-3 px-4 py-3 sm:px-5 sm:py-4 flex-1">
+                <Shield className="shrink-0 text-blue-500 w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]" />
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-50 mb-0.5">Secured Payments</p>
-                  <p className="text-sm font-semibold">UPI · Cards · Wallets </p>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest opacity-50 mb-0.5">Secured Payments</p>
+                  <p className="text-[11px] sm:text-sm font-semibold">UPI · Cards · Wallets </p>
                 </div>
               </div>
               {/* COD */}
-              <div className="flex items-center gap-3 px-5 py-4 flex-1">
-                <Truck size={18} className="shrink-0 text-green-500" />
+              <div className="flex items-center gap-2.5 sm:gap-3 px-4 py-3 sm:px-5 sm:py-4 flex-1">
+                <Truck className="shrink-0 text-green-500 w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]" />
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-50 mb-0.5">Delivery availability</p>
-                  <p className="text-sm font-semibold">Free all over INDIA</p>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest opacity-50 mb-0.5">Delivery availability</p>
+                  <p className="text-[11px] sm:text-sm font-semibold">Free all over INDIA</p>
                 </div>
               </div>
               {/* Offers */}
-              <div className="flex items-start gap-3 px-5 py-4 flex-1">
-                <Tag size={18} className="shrink-0 mt-0.5 text-amber-500" />
+              <div className="flex items-start gap-2.5 sm:gap-3 px-4 py-3 sm:px-5 sm:py-4 flex-1">
+                <Tag className="shrink-0 mt-0.5 text-amber-500 w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]" />
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-50 mb-1">Promo Codes</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest opacity-50 mb-1">Promo Codes</p>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {[{code:"MAR10",label:"10% off ₹3999+"},{code:"MAR15",label:"15% off ₹5999+"},{code:"WELCOME5",label:"5% off always"}].map(o=>(
-                      <span key={o.code} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                      <span key={o.code} className={`inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-[11px] font-bold border ${
                         theme==="dark"?"bg-amber-900/30 border-amber-700/50 text-amber-300":"bg-amber-50 border-amber-200 text-amber-700"
                       }`}>
                         <span className="font-mono tracking-wider">{o.code}</span>
